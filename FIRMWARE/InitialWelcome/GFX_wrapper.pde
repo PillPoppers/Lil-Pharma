@@ -276,10 +276,10 @@ class Keyboard{
   
   Keyboard(){
     
-    String[][] keyTitleLower = {{"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "←"}};
-                               /*{"TAB", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"  },*/
-                               /*{"CAPS", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "ENTER"},*/
-                               /*{"SPACE", "!", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/"}};*/
+    String[][] keyTitleLower = {{"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "←"},
+                               {"TAB", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"  },
+                               {"CAPS", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "ENTER"},
+                               {"SPACE", "TAB", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/"}};
                                 
     String[][] keyTitleUpper = {{"~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+", "←"},
                                 {"TAB", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "|"  },
@@ -291,28 +291,26 @@ class Keyboard{
     rect(0,200,width,height-400);
     // keys [`] through [←] :
     for(int i = 0; i < 14; i++){
-      keys[i] = new Button( 10+i*45, 260, 35, 45, color(100,200,255), color(255), keyTitleLower[0][i]);
+      keys[i] = new Button( 10+i*45, 260, 35, 45, color(100,200,255), color(255), keyTitleUpper[0][i]);
     }
-    /*
     // special case for tab:
-    keys[14]  = new Button( 10, 260+55*1, 55, 45, color(100,200,255), color(255), keyTitleLower[1][0]);
+    keys[14]  = new Button( 10, 260+55*1, 55, 45, color(100,200,255), color(255), keyTitleUpper[1][0]);
     
     for(int i = 1; i < 13; i++){
-      keys[14+i]  = new Button( 10+i*45+(55-35), 260+55*1, 35, 45, color(100,200,255), color(255), keyTitleLower[1][i]);
+      keys[14+i]  = new Button( 10+i*45+(55-35), 260+55*1, 35, 45, color(100,200,255), color(255), keyTitleUpper[1][i]);
     }
     
     // special case for caps lock:
-    keys[14+14] = new Button( 10, 260+55*2, 35*2+10, 45, color(100,200,255), color(255), keyTitleLower[2][0]);
+    keys[14+14] = new Button( 10, 260+55*2, 35*2+10, 45, color(100,200,255), color(255), keyTitleUpper[2][0]);
     
     for(int i = 1; i < 13; i++){
-      keys[14+14+i]    = new Button( 10+i*45+45, 260+55*2, 35, 45, color(100,200,255), color(255), keyTitleLower[2][i]);
+      keys[14+14+i]    = new Button( 10+i*45+45, 260+55*2, 35, 45, color(100,200,255), color(255), keyTitleUpper[2][i]);
     }
     // special case for spacebar
-    keys[14+14+12]  = new Button( 10, 260+55*3, 100, 45, color(100,200,255), color(255), keyTitleLower[3][0]);
+    keys[14+14+12]  = new Button( 10, 260+55*3, 100, 45, color(100,200,255), color(255), keyTitleUpper[3][0]);
     for(int i = 1; i < 11; i++){
-      keys[14+14+12+i] = new Button( 10+i*45 + (100-45)+10, 260+55*3, 35, 45, color(100,200,255), color(255), keyTitleLower[3][i]);
+      keys[14+14+12+i] = new Button( 10+i*45 + (100-45)+10, 260+55*3, 35, 45, color(100,200,255), color(255), keyTitleUpper[3][i]);
     }
-    */
   }
   
   boolean check(){

@@ -1,35 +1,30 @@
 import java.util.Queue; 
 import java.util.LinkedList; // this should be a circular buffer of fixed size when ported to C/C++
-import java.text.SimpleDateFormat; 
-import java.util.Date; 
 
 Queue<PVector> touch = new LinkedList(); // touch stores PVector where user tapped the screen.
 Button buttons[] = new Button[7];
 Nav_bar window_selection;  // navigation bar is rendered when displaying the window_selections.
 Clock_display clock;
+Button dispense;
 Keyboard keyboard;
 
 void setup(){  
-  size(320, 480); // resolution of LCD. Our LCD is going to be lower res. All graphic objects must be scalled appropriatly.
+  size(640, 480); // resolution of LCD. Our LCD is going to be lower res. All graphic objects must be scalled appropriatly.
   //noSmooth();     // disable AA to better emulate the appearance on LCD
   GFX_fill(theme.background);    // fill background
   //keyboard = new Keyboard();
   //keyboard.draw();
   
-  String s[] = {"MAIN", "ADMIN"};
-  window_selection = new Nav_bar(45, 10, 20, 30, s, 'h', true);
-  window_selection.draw(); // draw window_selection nav_bar
-  Date todayDate = new Date(); 
-  SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd"); 
-  String date = dateFormat.format(todayDate.getTime()); 
-  text(date, width/2, 90); //will indicate AFTERNOON, MORNING, OR NIGHT
-  clock = new Clock_display(width/2,height/2);
-  clock.draw();
-  text("Pill Status ", width/2, 380); //will indicate AFTERNOON, MORNING, OR NIGHT
-  text("Morning: ", width/4, 400); //will indicate AFTERNOON, MORNING, OR NIGHT
-  text("Afternoon: ", width/4, 420); //will indicate AFTERNOON, MORNING, OR NIGHT
-  text("Evening: ", width/4, 440); //will indicate AFTERNOON, MORNING, OR NIGHT
-  text("Night: ", width/4, 460); //will indicate AFTERNOON, MORNING, OR NIGHT
+  String s[] = {"MAIN"};
+  //window_selection = new Nav_bar(45, 10, 20, 30, s, 'h', true);
+  //window_selection.draw(); // draw window_selection nav_bar
+  //clock = new Clock_display(width/4,height/2);
+  //clock.draw();
+  text("Welcome!", width/2, height/4); 
+  text("Set up your admin pin.", width/2, 170); //example: can show AFTERNOON, MORNING, EVENING
+  //text("Press button to dispense pills!", 450, height/2); 
+  dispense = new Button(470, 20, 150, 70, color(128, 244, 66), color(13, 15, 11), "Continue..");
+  dispense.draw();
   
 }
 

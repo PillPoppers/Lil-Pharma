@@ -276,7 +276,8 @@ class Keyboard{
   
   Keyboard(){
     
-    String[][] keyTitleLower = {{"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "←"}};
+    String[][] keyTitleLower = {{ "1", "2", "3", "4", "5" }, 
+                                {"6", "7", "8", "9", "0", "←"}};
                                /*{"TAB", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"  },*/
                                /*{"CAPS", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "ENTER"},*/
                                /*{"SPACE", "!", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/"}};*/
@@ -290,8 +291,12 @@ class Keyboard{
     fill(theme.notselected);
     rect(0,200,width,height-400);
     // keys [`] through [←] :
-    for(int i = 0; i < 14; i++){
-      keys[i] = new Button( 10+i*45, 260, 35, 45, color(100,200,255), color(255), keyTitleLower[0][i]);
+    for(int i = 0; i < keyTitleLower[0].length; i++){
+      keys[i] = new Button( 10+i*45+(55-35), 260, 35, 45, color(100,200,255), color(255), keyTitleLower[0][i]);
+    }
+    
+    for(int i = 0; i < keyTitleLower[1].length; i++){
+      keys[5+i]  = new Button( 10+i*45+(55-35), 260+55*1, 35, 45, color(100,200,255), color(255), keyTitleLower[1][i]);
     }
     /*
     // special case for tab:
