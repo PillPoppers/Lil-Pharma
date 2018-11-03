@@ -39,6 +39,9 @@ void startState( int state ){
     case 1:
       setup1();
       break;
+    case 2:
+      setup2(); 
+      break;
     // ...
   }
 }
@@ -80,10 +83,30 @@ void setup1(){
   String s[] = {"MAIN"};
   text("Welcome!", width/2, height/4); 
   text("Set up your admin pin.", width/2, 170); //example: can show AFTERNOON, MORNING, EVENING
-  dispense2 = new Button(470, 20, 150, 70, color(128, 244, 66), color(13, 15, 11), "Continue..");
+  dispense2 = new Button(150, 20, 150, 50, color(128, 244, 66), color(13, 15, 11), "Continue..");
   dispense2.draw();
   
 }
+
+void setup2(){
+  GFX_fill(theme.background); 
+  String s[] = {"SUN"};
+  window_selection = new Nav_bar(10, 10, 20, 30, s, 'v', true);
+  window_selection.draw(); // draw window_selection nav_bar
+  keyboard = new Keyboard();
+  keyboard.draw();
+  text("Set your alarms", width-180, height-390); 
+  text("Morning: ", width-250, height-350); 
+  fill(230);
+  rect(10,210,width-20,40); 
+  
+}
+
+void setup3(){
+  
+}
+
+
 
 int psec = second();
 void draw0(){
@@ -120,37 +143,38 @@ void mousePressed(){
       if (b != null){
         if (b.check(new PVector(mouseX, mouseY))){
           if (b.title.equals("←")){
-            counter -= 40;
             pin = pin.substring(0, pin.length()-1);
             System.out.println(pin);
             fill(255);
             rect(10,210,width - 20, 40);
             fill(18);
-             
-            text(pin, 40, 225);
-            
+            text(pin, 60, 225);
           
           }
           else if (pin.length() < 4){
-             pin += b.title + " ";
-             //text(" ", 40 + counter, 225);
-             fill(255);
-             rect(10,210,width - 20, 40);
-             text(pin, 40, 225);
-             //text(b.title , 40 + counter, 225);
-             counter += 20;
-             //System.out.println(counter);
+             pin += b.title;
+             fill(230);
+             rect(10,210,width-20,40);
+             fill(18);
+             text(pin, 60, 225);
            }
         }
       }
     }
     }
   //if (state == 0 && (mouseX < 247 && mouseX > 100) &&( mouseY > 400 && mouseY < 465)){
-    if (dispense.check(new PVector(mouseX, mouseY))){
-    state = 1;
-    startState(state);
-    System.out.println(dispense.title);
+    if (state == 0 && dispense.check(new PVector(mouseX, mouseY))){
+      state = 1;
+      startState(state);
+      System.out.println(dispense.title);
     }
+    if (state == 1 && dispense2.check(new PVector(mouseX, mouseY))){
+      state = 2;
+      startState(state);
+      System.out.println(dispense.title);
+    }
+    
+    
    
   //}
   //System.out.println("x: " + mouseX); 
