@@ -34,7 +34,11 @@ class Button{
   
   // gets should get called when an event occurs. Returns whether button was pressed.
   boolean check(PVector a){
-    return ( (a.x > x) && (a.x < (x+dx)) && (a.y > y) && (a.y < (y+dy)) );
+    return ( (a.x > x) && (a.x < (x+dx)) && (a.y > y) && (a.y < (y+dy)));
+  }
+  
+  boolean checkWithTitle(PVector a, String title){
+    return ( (a.x > x) && (a.x < (x+dx)) && (a.y > y) && (a.y < (y+dy)) && this.title.equals(title));
   }
 }
 
@@ -276,8 +280,8 @@ class Keyboard{
   
   Keyboard(){
     
-    String[][] keyTitleLower = {{ "1", "2", "3", "4", "5" }, 
-                                {"6", "7", "8", "9", "0", "←"}};
+    String[][] keyTitleLower = {{ "1", "2", "3", "4", "5", ":"}, 
+                                {"6", "7", "8", "9", "0", "←", "X"}};
                                /*{"TAB", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"  },*/
                                /*{"CAPS", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "ENTER"},*/
                                /*{"SPACE", "!", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/"}};*/
@@ -289,14 +293,14 @@ class Keyboard{
     
     // draw keyboard body
     fill(theme.notselected);
-    rect(0,200,width,height-400);
+    rect(0,350,width,height-400);
     // keys [`] through [←] :
     for(int i = 0; i < keyTitleLower[0].length; i++){
-      keys[i] = new Button( 10+i*45+(55-35), 260, 35, 45, color(100,200,255), color(255), keyTitleLower[0][i]);
+      keys[i] = new Button( 5+i*45+(55-35), 260+100, 35, 45, color(100,200,255), color(255), keyTitleLower[0][i]);
     }
     
     for(int i = 0; i < keyTitleLower[1].length; i++){
-      keys[5+i]  = new Button( 10+i*45+(55-35), 260+55*1, 35, 45, color(100,200,255), color(255), keyTitleLower[1][i]);
+      keys[6+i]  = new Button(i*45+(55-35), 260+55*1+100, 35, 45, color(100,200,255), color(255), keyTitleLower[1][i]);
     }
     /*
     // special case for tab:
@@ -330,10 +334,10 @@ class Keyboard{
     // draw keyboard body
     noStroke();
     fill(theme.notselected);
-    rect(0,200,width,height-200);
+    rect(0,350,width,200);
     // text box
     fill(230);
-    rect(10,210,width-20,40);
+    
     
     for(int i = 0; i < keys.length; i++){
       if(keys[i] != null){ // safety check
