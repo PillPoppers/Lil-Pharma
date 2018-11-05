@@ -55,17 +55,26 @@ void startState( int state ){
       break;
     case 3:
       setup3(); 
+      break;
+    case 4: 
+      setup4();
+      break;
     // ...
   }
 }
 void draw() { // or mousePressed(), keyPressed(), etc.
   switch( state ){
     case 0:
-      draw0(); // or mousePressed0(), keyPressed0(), etc.
+      draw0();
       break;
     case 1:
-      draw0(); // or mousePressed1(), keyPressed1(), etc.
+      draw0();
       break;
+    case 2:
+      draw0(); 
+      break;
+    case 3:
+      draw0(); 
     // ...
   }
 }
@@ -81,7 +90,7 @@ void setup0(){
   textSize(26);
   text("Welcome!", 100, height/4); 
   text("Configure your device!", 20, 200); //example: can show AFTERNOON, MORNING, EVENING
-  dispense = new Button(100, 400, 150, 70, color(128, 244, 66), color(13, 15, 11), "Continue to pin");
+  dispense = new Button(100, 400, 150, 50, color(128, 244, 66), color(13, 15, 11), "-->");
   dispense.draw();
   
 }
@@ -96,7 +105,7 @@ void setup1(){
   String s[] = {"MAIN"};
   text("Welcome!", width/2, height/4); 
   text("Set up your admin pin.", width/2, 170); //example: can show AFTERNOON, MORNING, EVENING
-  dispense2 = new Button(200, 10, 200, 70, color(128, 244, 66), color(13, 15, 11), "Continue to alarms");
+  dispense2 = new Button(200, 10, 100, 40, color(128, 244, 66), color(13, 15, 11), "-->");
   dispense2.draw();
   
 }
@@ -108,32 +117,33 @@ void setup2(){
   window_selection.draw(); // draw window_selection nav_bar
   keyboard = new Keyboard();
   keyboard.draw();
+  textSize(20);
   text("Set your alarms", width-180, height-390); 
-  morning = new Button(10, 115, 100, 30, color(128, 244, 66), color(13, 15, 11), "Morning");
+  morning = new Button(20, 120, 100, 40, color(128, 244, 66), color(13, 15, 11), "Morn");
   morning.draw();
 //text("Morning: ", width-250, height-350); 
   fill(230);
-  rect(150,115,100,40);
+  rect(150,120,100,40);
   fill(230);
   //text("Afternoon: ", width-250, height-300); 
   fill(230);
   rect(150,170,100,40);
-  afternoon = new Button(10, 170, 120, 30, color(128, 244, 66), color(13, 15, 11), "Afternoon");
+  afternoon = new Button(20, 170, 100, 40, color(128, 244, 66), color(13, 15, 11), "Noon");
   afternoon.draw();
   fill(230);
   //text("Evening: ", width-250, height-230); 
   fill(230);
-  rect(150,230,100,40);
-  evening = new Button(10, 230, 100, 30, color(128, 244, 66), color(13, 15, 11), "Evening");
+  rect(150,220,100,40);
+  evening = new Button(20, 220, 100, 40, color(128, 244, 66), color(13, 15, 11), "Evening");
   evening.draw();
   fill(230);
   //text("Night: ", width-250, height-170); 
   fill(230);
-  rect(150,275,100,40);
-  night = new Button(10, 280, 100, 30, color(128, 244, 66), color(13, 15, 11), "Night");
+  rect(150,270,100,40);
+  night = new Button(20, 270, 100, 40, color(128, 244, 66), color(13, 15, 11), "Night");
   night.draw();
   fill(230);
-  dispense3 = new Button(100, 10, 50, 70, color(128, 244, 66), color(13, 15, 11), "Continue to alarms");
+  dispense3 = new Button(270, 70, 50, 40, color(128, 244, 66), color(13, 15, 11), "->");
   dispense3.draw();
  
 }
@@ -160,6 +170,26 @@ void setup3(){
   text("Night: ", width/4, 460); //will indicate AFTERNOON, MORNING, OR NIGHT
 }
 
+void setup4(){
+  
+  GFX_fill(theme.background);    // fill background
+  //keyboard = new Keyboard();
+  //keyboard.draw();
+  
+  String s[] = {"MAIN", "ADMIN"};
+  window_selection = new Nav_bar(45, 10, 20, 30, s, 'h', true);
+  window_selection.draw(); // draw window_selection nav_bar
+  clock = new Clock_display(width/2,height/2);
+  clock.draw();
+  fill(244, 98, 66);
+  text("It's time to take your meds!", width/2, 380); 
+  text("AFTERNOON", 450, 175); //example: can show AFTERNOON, MORNING, EVENING
+  text("Press button to dispense pills!", 160, 400); 
+  dispense = new Button(width/4, 420, 150, 40, color(128, 244, 66), color(13, 15, 11), "Press this!");
+  dispense.draw();
+  
+}
+
 
 
 int psec = second();
@@ -175,20 +205,16 @@ void draw0(){
   
   DateFormat dateFormat = new SimpleDateFormat("HH:mm");
   currentTime = Calendar.getInstance();
-  //dateFormat.format(currentTime);
-  System.out.println(allTimes[0][0]);
-  if (allTimes[0][0] != null){
-  System.out.println("reaches here");
-  if (currentTime.HOUR_OF_DAY == allTimes[0][0].HOUR_OF_DAY && currentTime.MINUTE == allTimes[0][0].MINUTE){
-    System.out.println("alarm interrupt");
-  }
-  System.out.println(currentTime.HOUR_OF_DAY == allTimes[0][0].HOUR_OF_DAY); 
-  }
-  // run every second. Better to set up a timer that sets a flag in software instead
-  //if(sec != psec){
-  //  clock.draw();
-  //}
-  
+   for (int j = 0; j < 4; j ++){
+   //System.out.println(allTimes[0][0].get(Calendar.HOUR_OF_DAY));
+   if (allTimes[0][j] != null){
+      if (hour() == allTimes[0][j].get(Calendar.HOUR_OF_DAY) && minute() == allTimes[0][j].get(Calendar.MINUTE)){
+        System.out.println("alarm interrupt");
+        state = 4; 
+        startState(state);
+      }
+   }
+   }
   
   sec = psec;
 }
@@ -211,17 +237,17 @@ void mousePressed(){
             pin = pin.substring(0, pin.length()-1);
             System.out.println(pin);
             fill(255);
-            rect(10,210,width - 20, 40);
+            rect(10,320,width-20,30);
             fill(18);
-            text(pin, 60, 225);
+            text(pin, 150, 330);
           
           }
           else if (pin.length() < 4){
              pin += b.title;
              fill(230);
-             rect(10,210,width-20,40);
+             rect(10,320,width-20,30);
              fill(18);
-             text(pin, 60, 225);
+             text(pin, 150, 330);
            }
         }
       }
@@ -238,23 +264,27 @@ void mousePressed(){
             current = current.substring(0, current.length()-1);
             System.out.println(current);
             fill(255);
-            rect(10,330,width-20,25);
+            rect(10,320,width-20,25);
             fill(18);
-            text(current, 60, 340);
+            text(current, 150, 330);
           
           }
           else if (current.length() < 5){
 
               if (b.title.equals("X")){
                 current = "N/A"; 
+                fill(230);
+                rect(10,320,width-20,30);
+                fill(18);
+                text(current, 150, 330);
               }
               else{
                 current += b.title;
                 System.out.println(current);
                 fill(230);
-                rect(10,330,width-20,25);
+                rect(10,320,width-20,30);
                 fill(18);
-                text(current, 60, 340);
+                text(current, 150, 330);
                 
               }          
            }
@@ -262,58 +292,134 @@ void mousePressed(){
       }
     }
     
-    if (morning.check(new PVector(mouseX, mouseY)) && current.length() == 5) {
+    if (morning.check(new PVector(mouseX, mouseY)) && (current.length() == 5 || current.equals("N/A"))) {
        morningtext = current; 
        System.out.println(morningtext);
        fill(255);
-       rect(150,115,100,40);
+       rect(150,120,100,40);
        fill(18);
-       text(morningtext, 200, 130);
+       text(morningtext, 200, 142);
        
-       DateFormat sdf = new SimpleDateFormat("hh:mm");
-       Calendar time = Calendar.getInstance();
-       try{
-       Date date = sdf.parse(morningtext);
-       time.setTime(date);
+       if (!morningtext.equals("N/A")){
+         int hours = Integer.parseInt(morningtext.substring(0,2)); 
+         int min = Integer.parseInt(morningtext.substring(3));
+         boolean valid = morningtext.substring(2,3).equals(":") && (hours >= 0 && hours < 24) && (min >= 0 && min < 60);
+         if (valid){
+         DateFormat sdf = new SimpleDateFormat("hh:mm");
+         Calendar time = Calendar.getInstance();
+         try{
+         Date date = sdf.parse(morningtext);
+         time.setTime(date);
+         }
+         catch(Exception e){
+          System.out.println(e); 
+         }
+         allTimes[0][0] = time; 
+         System.out.println(allTimes[0][0].get(Calendar.HOUR_OF_DAY)); 
+         System.out.println(allTimes[0][0].get(Calendar.MINUTE));
+         }
+         else {
+           
+         }
        }
-       catch(Exception e){
-        System.out.println(e); 
+       else {
+         allTimes[0][0] = null;
        }
-       allTimes[0][0] = time; 
     }
     
-    if (afternoon.check(new PVector(mouseX, mouseY)) && current.length() == 5) {
+    if (afternoon.check(new PVector(mouseX, mouseY)) && (current.length() == 5 || current.equals("N/A"))) {
        afternoontext = current; 
-       System.out.println(afternoontext);
-       text(afternoontext, 200, 190);
+       fill(255);
+       rect(150,170,100,40);
+       fill(18);
+       text(afternoontext, 200, 192);
+       
+        if (!afternoontext.equals("N/A")){
+         DateFormat sdf = new SimpleDateFormat("hh:mm");
+         Calendar time = Calendar.getInstance();
+         try{
+         Date date = sdf.parse(afternoontext);
+         time.setTime(date);
+         }
+         catch(Exception e){
+          System.out.println(e); 
+         }
+         allTimes[0][1] = time; 
+         System.out.println(allTimes[0][0].get(Calendar.HOUR_OF_DAY)); 
+         System.out.println(allTimes[0][0].get(Calendar.MINUTE));
+       }
+       else {
+         allTimes[0][1] = null;
+       }
     }
     
-    if (evening.check(new PVector(mouseX, mouseY)) && current.length() == 5) {
+    if (evening.check(new PVector(mouseX, mouseY)) && (current.length() == 5 || current.equals("N/A"))) {
        eveningtext = current; 
-       System.out.println(eveningtext);
-       text(eveningtext, 200, 250);
+       fill(255);
+       rect(150,220,100,40);
+       fill(18);
+       text(eveningtext, 200, 243);
+       
+        if (!eveningtext.equals("N/A")){
+         DateFormat sdf = new SimpleDateFormat("hh:mm");
+         Calendar time = Calendar.getInstance();
+         try{
+         Date date = sdf.parse(eveningtext);
+         time.setTime(date);
+         }
+         catch(Exception e){
+          System.out.println(e); 
+         }
+         allTimes[0][2] = time; 
+         System.out.println(allTimes[0][0].get(Calendar.HOUR_OF_DAY)); 
+         System.out.println(allTimes[0][0].get(Calendar.MINUTE));
+       }
+       else {
+         allTimes[0][2] = null;
+       }
     }
     
-    if (night.check(new PVector(mouseX, mouseY)) && current.length() == 5) {
+    if (night.check(new PVector(mouseX, mouseY)) && (current.length() == 5 || current.equals("N/A"))) {
        nighttext = current; 
-       //System.out.println(nighttext);
-       text(nighttext, 200, 300);
+       fill(255);
+       rect(150,270,100,40);
+       fill(18);
+       text(nighttext, 200, 285);
+       
+        if (!nighttext.equals("N/A")){
+         DateFormat sdf = new SimpleDateFormat("hh:mm");
+         Calendar time = Calendar.getInstance();
+         try{
+         Date date = sdf.parse(nighttext);
+         time.setTime(date);
+         }
+         catch(Exception e){
+          System.out.println(e); 
+         }
+         allTimes[0][3] = time; 
+         System.out.println(allTimes[0][0].get(Calendar.HOUR_OF_DAY)); 
+         System.out.println(allTimes[0][0].get(Calendar.MINUTE));
+       }
+       else {
+         allTimes[0][3] = null;
+       }
     }
     }
   //if (state == 0 && (mouseX < 247 && mouseX > 100) &&( mouseY > 400 && mouseY < 465)){
-    if (state == 0 && dispense.checkWithTitle(new PVector(mouseX, mouseY), "Continue to pin")){
+    if (state == 0 && dispense.check(new PVector(mouseX, mouseY))){
       state = 1;
       startState(state);
       System.out.println(dispense.title);
     }
-    if (state == 1 && dispense2.checkWithTitle(new PVector(mouseX, mouseY), "Continue to alarms") && pin.length() == 4){
+    if (state == 1 && dispense2.check(new PVector(mouseX, mouseY)) && pin.length() == 4){
       state = 2;
       startState(state);
-      System.out.println(dispense2.title);
+      System.out.println(pin);
     }
     if (state == 2 && dispense3.check(new PVector(mouseX, mouseY))){
       state = 3; 
       startState(state); 
+      System.out.println("state is" + state); 
     }
     
     
