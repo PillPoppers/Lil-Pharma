@@ -1,0 +1,22 @@
+ULTIBOARD DRILL REPORT
+
+Design: PhotoInterruptor
+
+DRILL FILE SETTINGS
+Excellon 2, Absolute, Inch, 2.5 
+
+
+DEFINITION COPPER LAYERS
+Copper Top
+Copper Bottom
+
+
+--------------------------------------------------------------------
+
+DRILLFILE                                         LAMINATION
+PhotoInterruptor - Copper Top-Copper Bottom.drl   Copper Top .. Copper Bottom
+
+TOOL     SIZE   TYPE  COUNT
+   1  0.02362    PTH      5
+   2  0.06250    PTH      4
+   3  0.04331    PTH      1
