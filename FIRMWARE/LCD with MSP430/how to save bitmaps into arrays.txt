@@ -1,0 +1,11 @@
+Method to save bitmap arrays
+
+Convert to mxn array in Matlab
+
+B = Reshape(A, [1,n])		// to reshape 
+
+fprintf('%d,',B) 			// Add commas and it prints out a string
+
+New line in MS Word to make array manageable
+
+Copy array into bitmaps.h
