@@ -74,7 +74,7 @@ void draw() { // or mousePressed(), keyPressed(), etc.
       draw0(); 
       break;
     case 3:
-      draw0(); 
+      draw3(); 
     // ...
   }
 }
@@ -207,15 +207,46 @@ void draw0(){
   currentTime = Calendar.getInstance();
    for (int j = 0; j < 4; j ++){
    //System.out.println(allTimes[0][0].get(Calendar.HOUR_OF_DAY));
-   if (allTimes[0][j] != null){
-      if (hour() == allTimes[0][j].get(Calendar.HOUR_OF_DAY) && minute() == allTimes[0][j].get(Calendar.MINUTE)){
-        System.out.println("alarm interrupt");
-        state = 4; 
-        startState(state);
-      }
-   }
+     if (allTimes[0][j] != null){
+        if (hour() == allTimes[0][j].get(Calendar.HOUR_OF_DAY) && minute() == allTimes[0][j].get(Calendar.MINUTE)){
+          System.out.println("alarm interrupt");
+          state = 4; 
+          startState(state);
+        }
+     }
    }
   
+  sec = psec;
+}
+
+void draw3(){
+  int sec = second();
+  boolean WindowChangeFlag = false;
+  
+  // set WindowChangeFlag flag
+  if(touch.peek() != null){
+    PVector v = touch.poll();
+    //WindowChangeFlag = window_selection.check(v);
+  }
+  
+  DateFormat dateFormat = new SimpleDateFormat("HH:mm");
+  currentTime = Calendar.getInstance();
+   for (int j = 0; j < 4; j ++){
+   //System.out.println(allTimes[0][0].get(Calendar.HOUR_OF_DAY));
+     if (allTimes[0][j] != null){
+        if (hour() == allTimes[0][j].get(Calendar.HOUR_OF_DAY) && minute() == allTimes[0][j].get(Calendar.MINUTE)){
+          System.out.println("alarm interrupt");
+          state = 4; 
+          startState(state);
+        }
+     }
+   }
+  
+  
+  
+  if(sec != psec){
+    clock.draw();
+  }
   sec = psec;
 }
 
