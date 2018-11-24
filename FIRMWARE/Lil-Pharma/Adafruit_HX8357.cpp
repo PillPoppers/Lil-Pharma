@@ -1,163 +1,102 @@
-/*!
-* @file Adafruit_HX8357.cpp
-*
-* @mainpage Adafruit HX8357 TFT Displays
-*
-* @section intro_sec Introduction
-*
-* This is the documentation for Adafruit's ILI9341 driver for the
-* Arduino platform.
-*
-* This library works with the Adafruit 3.5" TFT 320x480 + Touchscreen Breakout
-*    http://www.adafruit.com/products/2050
-*
-* Adafruit TFT FeatherWing - 3.5" 480x320 Touchscreen for Feathers
-*    https://www.adafruit.com/product/3651
-*
-* These displays use SPI to communicate, 4 or 5 pins are required
-* to interface (RST is optional).
-*
-* Adafruit invests time and resources providing this open source code,
-* please support Adafruit and open-source hardware by purchasing
-* products from Adafruit!
-*
-* @section dependencies Dependencies
-*
-* This library depends on <a href="https://github.com/adafruit/Adafruit_GFX">
-* Adafruit_GFX</a> being present on your system. Please make sure you have
-* installed the latest version before using this library.
-*
-* @section author Author
-*
-* Written by Limor "ladyada" Fried for Adafruit Industries.
-*
-* @section license License
-*
-* BSD license, all text here must be included in any redistribution.
-*
-*/
-
-#include <SPI.h>
+// Driverlib includes
+#include "hw_types.h"
+#include "hw_memmap.h"
+#include "hw_common_reg.h"
+#include "hw_ints.h"
+#include <spi.h>
+#include "rom.h"
+#include "rom_map.h"
+#include "utils.h"
+#include "prcm.h"
+#include "uart.h"
+#include "interrupt.h"
+#include "hw_gpio.h"
+#include "pin.h"
+#include "gpio.h"
+#include "prcm.h"
+#include "timer.h"
 #include "Adafruit_HX8357.h"
-#include <limits.h>
+
+#include "arduino.h"
 
 
-// Control Pins
+#define MADCTL_MY  0x80     ///< Bottom to top
+#define MADCTL_MX  0x40     ///< Right to left
+#define MADCTL_MV  0x20     ///< Reverse Mode
+#define MADCTL_ML  0x10     ///< LCD refresh Bottom to top
+#define MADCTL_RGB 0x00     ///< Red-Green-Blue pixel order
+#define MADCTL_BGR 0x08     ///< Blue-Green-Red pixel order
+#define MADCTL_MH  0x04     ///< LCD refresh right to left
 
 
+#define LCD_RESET_HIGH() GPIOPinWrite(GPIOA0_BASE, 0x01, 0x01); // Toggle LCD_RESET HIGH. (GPIO00, PIN_50 on Launchpad, pin_44 on MOD)
+#define LCD_RESET_LOW()  GPIOPinWrite(GPIOA0_BASE, 0x01, 0x00);
+#define SPI_DC_HIGH()    GPIOPinWrite(GPIOA1_BASE, 0x10, 0x10); // Toggle LCD_DC HIGH (pin also called RS. GPIO12, PIN_03 on Launchpad, pin_09 on MOD)
+#define SPI_DC_LOW()     GPIOPinWrite(GPIOA1_BASE, 0x10, 0x00);
+#define SPI_CS_HIGH()    GPIOPinWrite(GPIOA2_BASE, 0x02, 0x40);  // set LCD_CS HIGH (done with actual CS pin used as GPIO)
+#define SPI_CS_LOW()     GPIOPinWrite(GPIOA2_BASE, 0x02, 0x00);
 
-/*
- * Software SPI Macros
-#ifdef USE_FAST_PINIO
-#define SSPI_MOSI_HIGH()        *mosiport |=  mosipinmask  ///< Bitbang MOSI high
-#define SSPI_MOSI_LOW()         *mosiport &= ~mosipinmask  ///< Bitbang MOSI low
-#define SSPI_SCK_HIGH()         *clkport |=  clkpinmask    ///< Bitbang SCLK high
-#define SSPI_SCK_LOW()          *clkport &= ~clkpinmask    ///< Bitbang SCLK low
-#define SSPI_MISO_READ()        ((*misoport & misopinmask) != 0)  ///< Bitbang read MISO
-#else
-#define SSPI_MOSI_HIGH()        digitalWrite(_mosi, HIGH)  ///< Bitbang MOSI high
-#define SSPI_MOSI_LOW()         digitalWrite(_mosi, LOW)   ///< Bitbang MOSI low
-#define SSPI_SCK_HIGH()         digitalWrite(_sclk, HIGH)  ///< Bitbang SCLK high
-#define SSPI_SCK_LOW()          digitalWrite(_sclk, LOW)   ///< Bitbang SCLK low
-#define SSPI_MISO_READ()        digitalRead(_miso)         ///< Bitbang read MISO
-#endif
+#define HSPI_SET_CLOCK() //SPI_OBJECT.setClockDivider(SPI_CLOCK_DIV2);
 
-#define SSPI_BEGIN_TRANSACTION()                           ///< Software SPI begin
-#define SSPI_END_TRANSACTION()                             ///< Software SPI end
-#define SSPI_WRITE(v)           spiWrite(v)                ///< Software SPI write 8 bits
-#define SSPI_WRITE16(s)         SSPI_WRITE((s) >> 8); SSPI_WRITE(s)  ///< Software SPI write 16 bits
-#define SSPI_WRITE32(l)         SSPI_WRITE((l) >> 24); SSPI_WRITE((l) >> 16); SSPI_WRITE((l) >> 8); SSPI_WRITE(l)   ///< Software SPI write 32 bits
-#define SSPI_WRITE_PIXELS(c,l)  for(uint32_t i=0; i<(l); i+=2){ SSPI_WRITE(((uint8_t*)(c))[i+1]); SSPI_WRITE(((uint8_t*)(c))[i]); }   ///< Software SPI write 'l' pixels (16 bits each)
- */
+#define SPI_BEGIN()             SPIEnable( GSPI_BASE )
+#define SPI_BEGIN_TRANSACTION() //SPIDisable(GSPI_BASE)          //< SPI begin transaction
+#define SPI_END_TRANSACTION()   //HSPI_END_TRANSACTION();        //< SPI end transaction
 
+// hardware SPI read
+unsigned long HSPI_READ(){
+    unsigned long data;
+    SPIDataGet(GSPI_BASE,&data);
+    return data;
+}
 
-#define SPI_OBJECT  SPI         ///< Default SPI hardware peripheral
+// hardware SPI write 8 bits
+#define SPI_WRITE(b)\
+    SPICSEnable(GSPI_BASE);\
+    SPIDataPut(GSPI_BASE,(b));\
+    SPICSDisable(GSPI_BASE);
 
-#define SPI_DEFAULT_FREQ 10 * 1000 * 1000 // 10MHz
+// hardware SPI write 16 bits
+#define SPI_WRITE16(s)\
+    SPICSEnable(GSPI_BASE);\
+    SPIDataPut(GSPI_BASE,(s) >> 8);\
+    SPIDataPut(GSPI_BASE,(s));\
+    SPICSDisable(GSPI_BASE);
 
-/* not sure if all this is nessesary:
-#if defined (__AVR__) ||  defined(TEENSYDUINO) ||  defined(ARDUINO_ARCH_STM32F1)
-    #define HSPI_SET_CLOCK() SPI_OBJECT.setClockDivider(SPI_CLOCK_DIV2);
-#elif defined (__arm__)
-    #define HSPI_SET_CLOCK() SPI_OBJECT.setClockDivider(11);
-#elif defined(ESP8266) || defined(ESP32)
-    #define HSPI_SET_CLOCK() SPI_OBJECT.setFrequency(_freq);
-#elif defined(RASPI)
-    #define HSPI_SET_CLOCK() SPI_OBJECT.setClock(_freq);
-#elif defined(ARDUINO_ARCH_STM32F1)
-    #define HSPI_SET_CLOCK() SPI_OBJECT.setClock(_freq);
-#else
-    #define HSPI_SET_CLOCK()   ///< Hardware SPI set clock frequency
-#endif
+// Hardware SPI write 32 bits
+#define SPI_WRITE32(l)\
+    SPICSEnable(GSPI_BASE);\
+    SPIDataPut(GSPI_BASE,(l) >> 24);\
+    SPIDataPut(GSPI_BASE,(l) >> 16);\
+    SPIDataPut(GSPI_BASE,(l) >> 8);\
+    SPIDataPut(GSPI_BASE,(l));\
+    SPICSDisable(GSPI_BASE);
 
-#ifdef SPI_HAS_TRANSACTION
-    #define HSPI_BEGIN_TRANSACTION() SPI_OBJECT.beginTransaction(SPISettings(_freq, MSBFIRST, SPI_MODE0))
-    #define HSPI_END_TRANSACTION()   SPI_OBJECT.endTransaction()
-#else
-    #define HSPI_BEGIN_TRANSACTION() HSPI_SET_CLOCK(); SPI_OBJECT.setBitOrder(MSBFIRST); SPI_OBJECT.setDataMode(SPI_MODE0)        ///< Hardware SPI begin transaction
-    #define HSPI_END_TRANSACTION()    ///< Hardware SPI end transaction
-#endif
-
-#ifdef ESP32
-    #define SPI_HAS_WRITE_PIXELS
-#endif
-#if defined(ESP8266) || defined(ESP32)
-    // Optimized SPI (ESP8266 and ESP32)
-    #define HSPI_READ()              SPI_OBJECT.transfer(0)    ///< Hardware SPI read 8 bits
-    #define HSPI_WRITE(b)            SPI_OBJECT.write(b)       ///< Hardware SPI write 8 bits
-    #define HSPI_WRITE16(s)          SPI_OBJECT.write16(s)     ///< Hardware SPI write 16 bits
-    #define HSPI_WRITE32(l)          SPI_OBJECT.write32(l)     ///< Hardware SPI write 32 bits
-    #ifdef SPI_HAS_WRITE_PIXELS
-        #define SPI_MAX_PIXELS_AT_ONCE  32
-        #define HSPI_WRITE_PIXELS(c,l)   SPI_OBJECT.writePixels(c,l)
-    #else
-        #define HSPI_WRITE_PIXELS(c,l)   for(uint32_t i=0; i<((l)/2); i++){ SPI_WRITE16(((uint16_t*)(c))[i]); }
-    #endif
-#else
-    // Standard Byte-by-Byte SPI
-
-    #if defined (__AVR__) || defined(TEENSYDUINO)
-    static inline uint8_t _avr_spi_read(void) __attribute__((always_inline));
-    static inline uint8_t _avr_spi_read(void) {
-        uint8_t r = 0;
-        SPDR = r;
-        while(!(SPSR & _BV(SPIF)));
-        r = SPDR;
-        return r;
+#define SPI_WRITE_PIXELS(c,l)\
+    for(uint32_t i=0; i<((l)/2); i++){\
+        SPI_WRITE16(((uint16_t*)(c))[i]);\
     }
-    #define HSPI_WRITE(b)            {SPDR = (b); while(!(SPSR & _BV(SPIF)));}
-    #define HSPI_READ()              _avr_spi_read()
-    #else
-        #define HSPI_WRITE(b)            SPI_OBJECT.transfer((uint8_t)(b))    ///< Hardware SPI write 8 bits
-        #define HSPI_READ()              HSPI_WRITE(0)    ///< Hardware SPI read 8 bits
-    #endif
-#define HSPI_WRITE16(s)          HSPI_WRITE((s) >> 8); HSPI_WRITE(s)  ///< Hardware SPI write 16 bits
-#define HSPI_WRITE32(l)          HSPI_WRITE((l) >> 24); HSPI_WRITE((l) >> 16); HSPI_WRITE((l) >> 8); HSPI_WRITE(l)          ///< Hardware SPI write 32 bits
-#define HSPI_WRITE_PIXELS(c,l)   for(uint32_t i=0; i<(l); i+=2){ HSPI_WRITE(((uint8_t*)(c))[i+1]); HSPI_WRITE(((uint8_t*)(c))[i]); }       ///< Hardware SPI write 'l' pixels 16-bits each
-#endif
-*/
+// #define SPI_WRITE_PIXELS(c,l)
+//  for(uint32_t i=0; i<((l)/2); i++){\
+//     SPI_WRITE16(((uint16_t*)(c))[i]);
+//  }
 
-
-/*
- * Final SPI Macros
- * */
-
-
-//#define SPI_BEGIN()             if(_sclk < 0){SPI_OBJECT.begin();}                    ///< SPI initialize (SPI begin is handled in main)
-#define SPI_BEGIN_TRANSACTION() if(_sclk < 0){HSPI_BEGIN_TRANSACTION();}                ///< SPI begin transaction
-#define SPI_END_TRANSACTION()   if(_sclk < 0){HSPI_END_TRANSACTION();}                  ///< SPI end transaction
-#define SPI_WRITE16(s)          if(_sclk < 0){HSPI_WRITE16(s);}else{SSPI_WRITE16(s);}   ///< SPI write 16 bits
-#define SPI_WRITE32(l)          if(_sclk < 0){HSPI_WRITE32(l);}else{SSPI_WRITE32(l);}   ///< SPI write 32 bits
-#define SPI_WRITE_PIXELS(c,l)   if(_sclk < 0){HSPI_WRITE_PIXELS(c,l);}else{SSPI_WRITE_PIXELS(c,l);}  ///< SPI write 'l' pixels of 16-bits each
+// Hardware SPI write 'l' pixels 16-bits each
+//#define SPI_WRITE_PIXELS(c,l)\
+//  for(uint32_t i=0; i<(l); i+=2){\
+//    HSPI_WRITE(((uint8_t*)(c))[i+1]);\
+//    HSPI_WRITE(((uint8_t*)(c))[i]);\
+//  }\
+// Standard Byte-by-Byte SPI
+//static inline uint8_t _avr_spi_read(void) {
+//    uint8_t r = 0;
+//    SPDR = r;
+//    while(!(SPSR & _BV(SPIF)));
+//    r = SPDR;
+//    return r;
+//}
 
 
 
-#define SPI_DC_HIGH()           GPIOPinWrite(GPIOA1_BASE, 0x10, 0x10); // set DataCommand pin HIGH
-#define SPI_DC_LOW()            GPIOPinWrite(GPIOA1_BASE, 0x10, 0x00); // set DataCommand pin LOW
-#define SPI_CS_HIGH()           GPIOPinWrite(ulPort, ucPins, ucVal);   //
-#define SPI_CS_LOW()            GPIOPinWrite(ulPort, ucPins, ucVal);   //
-#define SPI_RST_HIGH()          GPIOPinWrite(GPIOA0_BASE, 0x1, 0x0);   // set LCD_RESET pin HIGH
-#define SPI_RST_LOW()           GPIOPinWrite(GPIOA0_BASE, 0x1, 0x1);   // set LCD_RESET pin LOW
 /**************************************************************************/
 /*!
     @brief  Pass 8-bit (each) R,G,B, get back 16-bit packed color
@@ -172,18 +111,13 @@ uint16_t Adafruit_HX8357::color565(uint8_t red, uint8_t green, uint8_t blue) {
     return ((red & 0xF8) << 8) | ((green & 0xFC) << 3) | ((blue & 0xF8) >> 3);
 }
 
-
 /**************************************************************************/
 /*!
-    @brief  Instantiate Adafruit HX8357 driver with software SPI
-    @param    cs    Chip select pin #
-    @param    dc    Data/Command pin #
-    @param    rst   Reset pin # (optional, pass -1 if unused)
+    @brief  Instantiate Adafruit HX8357 driver. Uses hardware SPI
 */
 /**************************************************************************/
+Adafruit_HX8357::Adafruit_HX8357() : Adafruit_GFX(HX8357_TFTWIDTH, HX8357_TFTHEIGHT) {
 
-Adafruit_HX8357::Adafruit_HX8357(int8_t cs, int8_t dc, int8_t rst) : Adafruit_GFX(HX8357_TFTWIDTH, HX8357_TFTHEIGHT)  {
-  _freq = SPI_DEFAULT_FREQ;
 }
 
 /**************************************************************************/
@@ -194,223 +128,132 @@ Adafruit_HX8357::Adafruit_HX8357(int8_t cs, int8_t dc, int8_t rst) : Adafruit_GF
 */
 /**************************************************************************/
 void Adafruit_HX8357::begin(uint8_t type) {
-
-    // in here, we can either assume the SPI initialization is handled in the main.cpp, or here.
-    // for the moment, I am going to leave the SPI initialization up to main.cpp.
-
-    // However, since the control pins are unique to the just the LCD, it makes sense for theme
-    // to be here.
-
-    // Control Pins
-    // pinMode(_dc, OUTPUT); // pin config handled in main
-    SPI_DC_LOW();
-    // pinMode(_cs, OUTPUT); // pin config handled in main
-    SPI_DC_HIGH();
-
-    SPI_RST_HIGH();
-    delay(100);
-    SPI_RST_LOW();
-    delay(100);
-    SPI_RST_HIGH();
-    delay(200);
-    startWrite();
-
-  if (type == HX8357B) {
-    writeCommand(HX8357B_SETPOWER);
-    spiWrite(0x44);
-    spiWrite(0x41);
-    spiWrite(0x06);
-    // seq_vcom
-    writeCommand(HX8357B_SETVCOM);
-    spiWrite(0x40);
-    spiWrite(0x10);
-    // seq_power_normal
-    writeCommand(HX8357B_SETPWRNORMAL);
-    spiWrite(0x05);
-    spiWrite(0x12);
-    // seq_panel_driving
-    writeCommand(HX8357B_SET_PANEL_DRIVING);
-    spiWrite(0x14);
-    spiWrite(0x3b);
-    spiWrite(0x00);
-    spiWrite(0x02);
-    spiWrite(0x11);
-    // seq_display_frame
-    writeCommand(HX8357B_SETDISPLAYFRAME);
-    spiWrite(0x0c);  // 6.8mhz
-    // seq_panel_related
-    writeCommand(HX8357B_SETPANELRELATED);
-    spiWrite(0x01);  // BGR
-    // seq_undefined1
-    writeCommand(0xEA);
-    spiWrite(0x03);
-    spiWrite(0x00);
-    spiWrite(0x00);
-    // undef2
-    writeCommand(0xEB);
-    spiWrite(0x40);
-    spiWrite(0x54);
-    spiWrite(0x26);
-    spiWrite(0xdb);
-    // seq_gamma
-    writeCommand(HX8357B_SETGAMMA); // 0xC8
-    spiWrite(0x00);
-    spiWrite(0x15);
-    spiWrite(0x00);
-    spiWrite(0x22);
-    spiWrite(0x00);
-    spiWrite(0x08);
-    spiWrite(0x77);
-    spiWrite(0x26);
-    spiWrite(0x66);
-    spiWrite(0x22);
-    spiWrite(0x04);
-    spiWrite(0x00);
-
-    // seq_addr mode
-    writeCommand(HX8357_MADCTL);
-    spiWrite(0xC0);
-    // pixel format
-    writeCommand(HX8357_COLMOD);
-    spiWrite(0x55);
-
-    // set up whole address box
-    // paddr
-    writeCommand(HX8357_PASET);
-    spiWrite(0x00);
-    spiWrite(0x00);
-    spiWrite(0x01);
-    spiWrite(0xDF);
-    // caddr
-    writeCommand(HX8357_CASET);
-    spiWrite(0x00);
-    spiWrite(0x00);
-    spiWrite(0x01);
-    spiWrite(0x3F);
-
-    // display mode
-    writeCommand(HX8357B_SETDISPMODE);
-    spiWrite(0x00); // CPU (DBI) and internal oscillation ??
-    // exit sleep
-    writeCommand(HX8357_SLPOUT);
-
-    delay(120);
-    // main screen turn on
-    writeCommand(HX8357_DISPON);
-    delay(10);
-  }
-  else if (type == HX8357D) {
-    writeCommand(HX8357_SWRESET);
-    delay(10);
-
-    // setextc
-    writeCommand(HX8357D_SETC);
-    spiWrite(0xFF);
-    spiWrite(0x83);
-    spiWrite(0x57);
-    delay(300);
-
-    // setRGB which also enables SDO
-    writeCommand(HX8357_SETRGB);
-    spiWrite(0x80);  //enable SDO pin!
-//    spiWrite(0x00);  //disable SDO pin!
-    spiWrite(0x0);
-    spiWrite(0x06);
-    spiWrite(0x06);
-
-    writeCommand(HX8357D_SETCOM);
-    spiWrite(0x25);  // -1.52V
-
-    writeCommand(HX8357_SETOSC);
-    spiWrite(0x68);  // Normal mode 70Hz, Idle mode 55 Hz
-
-    writeCommand(HX8357_SETPANEL); //Set Panel
-    spiWrite(0x05);  // BGR, Gate direction swapped
-
-    writeCommand(HX8357_SETPWR1);
-    spiWrite(0x00);  // Not deep standby
-    spiWrite(0x15);  //BT
-    spiWrite(0x1C);  //VSPR
-    spiWrite(0x1C);  //VSNR
-    spiWrite(0x83);  //AP
-    spiWrite(0xAA);  //FS
-
-    writeCommand(HX8357D_SETSTBA);
-    spiWrite(0x50);  //OPON normal
-    spiWrite(0x50);  //OPON idle
-    spiWrite(0x01);  //STBA
-    spiWrite(0x3C);  //STBA
-    spiWrite(0x1E);  //STBA
-    spiWrite(0x08);  //GEN
-
-    writeCommand(HX8357D_SETCYC);
-    spiWrite(0x02);  //NW 0x02
-    spiWrite(0x40);  //RTN
-    spiWrite(0x00);  //DIV
-    spiWrite(0x2A);  //DUM
-    spiWrite(0x2A);  //DUM
-    spiWrite(0x0D);  //GDON
-    spiWrite(0x78);  //GDOFF
-
-    writeCommand(HX8357D_SETGAMMA);
-    spiWrite(0x02);
-    spiWrite(0x0A);
-    spiWrite(0x11);
-    spiWrite(0x1d);
-    spiWrite(0x23);
-    spiWrite(0x35);
-    spiWrite(0x41);
-    spiWrite(0x4b);
-    spiWrite(0x4b);
-    spiWrite(0x42);
-    spiWrite(0x3A);
-    spiWrite(0x27);
-    spiWrite(0x1B);
-    spiWrite(0x08);
-    spiWrite(0x09);
-    spiWrite(0x03);
-    spiWrite(0x02);
-    spiWrite(0x0A);
-    spiWrite(0x11);
-    spiWrite(0x1d);
-    spiWrite(0x23);
-    spiWrite(0x35);
-    spiWrite(0x41);
-    spiWrite(0x4b);
-    spiWrite(0x4b);
-    spiWrite(0x42);
-    spiWrite(0x3A);
-    spiWrite(0x27);
-    spiWrite(0x1B);
-    spiWrite(0x08);
-    spiWrite(0x09);
-    spiWrite(0x03);
-    spiWrite(0x00);
-    spiWrite(0x01);
-
-    writeCommand(HX8357_COLMOD);
-    spiWrite(0x55);  // 16 bit
-
-    writeCommand(HX8357_MADCTL);
-    spiWrite(0xC0);
-
-    writeCommand(HX8357_TEON);  // TE off
-    spiWrite(0x00);
-
-    writeCommand(HX8357_TEARLINE);  // tear line
-    spiWrite(0x00);
-    spiWrite(0x02);
-
-    writeCommand(HX8357_SLPOUT); //Exit Sleep
-    delay(150);
-
-    writeCommand(HX8357_DISPON);  // display on
-    delay(50);
-
-  } else {
-    //Serial.println("unknown type");
+  
+  // toggle RST low to reset and get LCD into known state
+  
+  while(1){
+      SPICSEnable(GSPI_BASE);
+      for(char _i = 0; _i < 5; _i++){
+          SPIDataPut(GSPI_BASE,(_i));
+          //SPIDataGet();
+      }
+      SPICSDisable(GSPI_BASE);
   }
 
+
+  LCD_RESET_HIGH()
+  delay(100);
+  LCD_RESET_LOW()
+  delay(100);
+  LCD_RESET_HIGH()
+  delay(200);
+
+  startWrite();
+  writeCommand(HX8357_SWRESET);
+  delay(10);
+
+  // setextc
+  writeCommand(HX8357D_SETC);
+  spiWrite(0xFF);
+  spiWrite(0x83);
+  spiWrite(0x57);
+  delay(300);
+
+  // setRGB which also enables SDO
+  writeCommand(HX8357_SETRGB); 
+  spiWrite(0x80);  //enable SDO pin!
+  //spiWrite(0x00);  //disable SDO pin!
+  spiWrite(0x0);
+  spiWrite(0x06);
+  spiWrite(0x06);
+
+  writeCommand(HX8357D_SETCOM);
+  spiWrite(0x25);  // -1.52V
+    
+  writeCommand(HX8357_SETOSC);
+  spiWrite(0x68);  // Normal mode 70Hz, Idle mode 55 Hz
+    
+  writeCommand(HX8357_SETPANEL); //Set Panel
+  spiWrite(0x05);  // BGR, Gate direction swapped
+  
+  writeCommand(HX8357_SETPWR1);
+  spiWrite(0x00);  // Not deep standby
+  spiWrite(0x15);  //BT
+  spiWrite(0x1C);  //VSPR
+  spiWrite(0x1C);  //VSNR
+  spiWrite(0x83);  //AP
+  spiWrite(0xAA);  //FS
+  writeCommand(HX8357D_SETSTBA);  
+  spiWrite(0x50);  //OPON normal
+  spiWrite(0x50);  //OPON idle
+  spiWrite(0x01);  //STBA
+  spiWrite(0x3C);  //STBA
+  spiWrite(0x1E);  //STBA
+  spiWrite(0x08);  //GEN
+  
+  writeCommand(HX8357D_SETCYC);  
+  spiWrite(0x02);  //NW 0x02
+  spiWrite(0x40);  //RTN
+  spiWrite(0x00);  //DIV
+  spiWrite(0x2A);  //DUM
+  spiWrite(0x2A);  //DUM
+  spiWrite(0x0D);  //GDON
+  spiWrite(0x78);  //GDOFF
+  writeCommand(HX8357D_SETGAMMA); 
+  spiWrite(0x02);
+  spiWrite(0x0A);
+  spiWrite(0x11);
+  spiWrite(0x1d);
+  spiWrite(0x23);
+  spiWrite(0x35);
+  spiWrite(0x41);
+  spiWrite(0x4b);
+  spiWrite(0x4b);
+  spiWrite(0x42);
+  spiWrite(0x3A);
+  spiWrite(0x27);
+  spiWrite(0x1B);
+  spiWrite(0x08);
+  spiWrite(0x09);
+  spiWrite(0x03);
+  spiWrite(0x02);
+  spiWrite(0x0A);
+  spiWrite(0x11);
+  spiWrite(0x1d);
+  spiWrite(0x23);
+  spiWrite(0x35);
+  spiWrite(0x41);
+  spiWrite(0x4b);
+  spiWrite(0x4b);
+  spiWrite(0x42);
+  spiWrite(0x3A);
+  spiWrite(0x27);
+  spiWrite(0x1B);
+  spiWrite(0x08);
+  spiWrite(0x09);
+  spiWrite(0x03);
+  spiWrite(0x00);
+  spiWrite(0x01);
+  
+  writeCommand(HX8357_COLMOD);
+  spiWrite(0x55);  // 16 bit
+  
+  writeCommand(HX8357_MADCTL);  
+  spiWrite(0xC0); 
+  
+  writeCommand(HX8357_TEON);  // TE off
+  spiWrite(0x00); 
+  
+  writeCommand(HX8357_TEARLINE);  // tear line
+  spiWrite(0x00); 
+  spiWrite(0x02);
+
+  writeCommand(HX8357_SLPOUT); //Exit Sleep
+  delay(150);
+  
+  writeCommand(HX8357_DISPON);  // display on
+  delay(50);
+  
   endWrite();
   _width  = HX8357_TFTWIDTH;
   _height = HX8357_TFTHEIGHT;
@@ -448,7 +291,6 @@ void Adafruit_HX8357::setRotation(uint8_t m) {
      _height = HX8357_TFTWIDTH;
      break;
   }
-
   startWrite();
   writeCommand(HX8357_MADCTL);
   spiWrite(m);
@@ -478,8 +320,6 @@ void Adafruit_HX8357::invertDisplay(bool invert) {
     @param   h  Height of rectangle
 */
 /**************************************************************************/
-
-
 void Adafruit_HX8357::setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
   uint32_t xa = ((uint32_t)x << 16) | (x+w-1);
   uint32_t ya = ((uint32_t)y << 16) | (y+h-1);
@@ -557,8 +397,8 @@ void Adafruit_HX8357::writeColor(uint16_t color, uint32_t len){
     uint8_t hi = color >> 8, lo = color;
     if(_sclk < 0){ //AVR Optimization
         for (uint32_t t=len; t; t--){
-            HSPI_WRITE(hi);
-            HSPI_WRITE(lo);
+            SPI_WRITE(hi);
+            SPI_WRITE(lo);
         }
         return;
     }
@@ -712,13 +552,7 @@ void Adafruit_HX8357::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint1
 */
 /**************************************************************************/
 void Adafruit_HX8357::fillScreen(uint16_t color) {
-#if defined(ESP8266)
-  ESP.wdtDisable();
-#endif
   fillRect(0, 0, _width, _height, color);
-#if defined(ESP8266)
-  ESP.wdtEnable(WDTO_4S);
-#endif
 }
 
 
@@ -738,8 +572,7 @@ void Adafruit_HX8357::fillScreen(uint16_t color) {
     @param    h  Height of pcolors rectangle
 */
 /**************************************************************************/
-void Adafruit_HX8357::drawRGBBitmap(int16_t x, int16_t y,
-  uint16_t *pcolors, int16_t w, int16_t h) {
+void Adafruit_HX8357::drawRGBBitmap(int16_t x, int16_t y, uint16_t *pcolors, int16_t w, int16_t h) {
 
     int16_t x2, y2; // Lower-right coord
     if(( x             >= _width ) ||      // Off-edge right
@@ -785,16 +618,6 @@ uint8_t Adafruit_HX8357::spiRead() {
     if(_miso < 0){
         return 0;
     }
-    uint8_t r = 0;
-    for (uint8_t i=0; i<8; i++) {
-        SSPI_SCK_LOW();
-        SSPI_SCK_HIGH();
-        r <<= 1;
-        if (SSPI_MISO_READ()){
-            r |= 0x1;
-        }
-    }
-    return r;
 }
 
 /**************************************************************************/
@@ -804,19 +627,8 @@ uint8_t Adafruit_HX8357::spiRead() {
 */
 /**************************************************************************/
 void Adafruit_HX8357::spiWrite(uint8_t b) {
-    if(_sclk < 0){
-        HSPI_WRITE(b);
-        return;
-    }
-    for(uint8_t bit = 0x80; bit; bit >>= 1){
-        if((b) & bit){
-            SSPI_MOSI_HIGH();
-        } else {
-            SSPI_MOSI_LOW();
-        }
-        SSPI_SCK_LOW();
-        SSPI_SCK_HIGH();
-    }
+  SPI_WRITE(b);
+  return;
 }
 
 /**************************************************************************/
@@ -825,8 +637,8 @@ void Adafruit_HX8357::spiWrite(uint8_t b) {
 */
 /**************************************************************************/
 void Adafruit_HX8357::startWrite(void){
-    SPI_BEGIN_TRANSACTION();
-    SPI_CS_LOW();
+  //SPI_BEGIN_TRANSACTION();
+  SPI_CS_LOW();
 }
 
 /**************************************************************************/
@@ -835,8 +647,8 @@ void Adafruit_HX8357::startWrite(void){
 */
 /**************************************************************************/
 void Adafruit_HX8357::endWrite(void){
-    SPI_CS_HIGH();
-    SPI_END_TRANSACTION();
+  SPI_CS_HIGH();
+  //SPI_END_TRANSACTION();
 }
 
 
@@ -853,8 +665,6 @@ void Adafruit_HX8357::writeCommand(uint8_t c) {
     SPI_DC_HIGH();
 }
 
-
-
 ////////// stuff not actively being used, but kept for posterity
 
 /**************************************************************************/
@@ -867,67 +677,232 @@ void Adafruit_HX8357::writeCommand(uint8_t c) {
 */
 /**************************************************************************/
 uint8_t Adafruit_HX8357::readcommand8(uint8_t command, uint8_t index) {
-   digitalWrite(_dc, LOW);
-   digitalWrite(_cs, LOW);
+   SPI_DC_LOW();
+   SPI_CS_LOW();
 
    spiWrite(command);
-
-   digitalWrite(_dc, HIGH);
+ 
+   SPI_DC_HIGH();
    uint8_t r = spiRead();
-   digitalWrite(_cs, HIGH);
+   SPI_CS_HIGH();
    return r;
 }
 
 
 /*
- uint8_t Adafruit_HX8357::readdata(void) {
-   digitalWrite(_dc, HIGH);
-   digitalWrite(_cs, LOW);
-   uint8_t r = spiRead();
-   digitalWrite(_cs, HIGH);
-
-   return r;
+unsigned long testFillScreen() {
+//    unsigned long start = micros();
+    tft.fillScreen(HX8357_RED);
+    tft.fillScreen(HX8357_GREEN);
+    tft.fillScreen(HX8357_BLUE);
+    tft.fillScreen(HX8357_WHITE);
+    return 0;//micros() - start;
 }
 
- uint16_t Adafruit_HX8357::readcommand16(uint8_t c) {
- digitalWrite(_dc, LOW);
- if (_cs)
- digitalWrite(_cs, LOW);
+unsigned long testText() {
+    tft.fillScreen(HX8357_BLACK);
+//    unsigned long start = micros();
+    tft.setCursor(0, 0);
+    tft.setTextColor(HX8357_WHITE);  tft.setTextSize(1);
+//    tft.println("Hello World!");
+    tft.setTextColor(HX8357_YELLOW); tft.setTextSize(2);
+//    tft.println(1234.56);
+    tft.setTextColor(HX8357_RED);    tft.setTextSize(3);
+//    tft.println(0xDEADBEEF, HEX);
+//    tft.println();
+    tft.setTextColor(HX8357_GREEN);
+    tft.setTextSize(5);
+//    tft.println("Groop");
+    tft.setTextSize(2);
+//    tft.println("I implore thee,");
+    tft.setTextSize(1);
+//    tft.println("my foonting turlingdromes.");
+//    tft.println("And hooptiously drangle me");
+//    tft.println("with crinkly bindlewurdles,");
+//    tft.println("Or I will rend thee");
+//    tft.println("in the gobberwarts");
+//    tft.println("with my blurglecruncheon,");
+//    tft.println("see if I don't!");
+    tft.setTextColor(HX8357_WHITE);
+//    tft.println(F("Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, 'and what is the use of a book,' thought Alice 'without pictures or conversations?'"));
+//    tft.println(F("So she was considering in her own mind (as well as she could, for the hot day made her feel very sleepy and stupid), whether the pleasure of making a daisy-chain would be worth the trouble of getting up and picking the daisies, when suddenly a White Rabbit with pink eyes ran close by her."));
+//    tft.println(F("There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself, 'Oh dear! Oh dear! I shall be late!' (when she thought it over afterwards, it occurred to her that she ought to have wondered at this, but at the time it all seemed quite natural); but when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on, Alice started to her feet, for it flashed across her mind that she had never before seen a rabbit with either a waistcoat-pocket, or a watch to take out of it, and burning with curiosity, she ran across the field after it, and fortunately was just in time to see it pop down a large rabbit-hole under the hedge."));
+//    tft.println(F("In another moment down went Alice after it, never once considering how in the world she was to get out again."));
+//    tft.println(F("The rabbit-hole went straight on like a tunnel for some way, and then dipped suddenly down, so suddenly that Alice had not a moment to think about stopping herself before she found herself falling down a very deep well."));
+//    tft.println(F("Either the well was very deep, or she fell very slowly, for she had plenty of time as she went down to look about her and to wonder what was going to happen next. First, she tried to look down and make out what she was coming to, but it was too dark to see anything; then she looked at the sides of the well, and noticed that they were filled with cupboards and book-shelves; here and there she saw maps and pictures hung upon pegs. She took down a jar from one of the shelves as she passed; it was labelled 'ORANGE MARMALADE', but to her great disappointment it was empty: she did not like to drop the jar for fear of killing somebody, so managed to put it into one of the cupboards as she fell past it."));
+  return 0;//micros() - start;
+}
 
- spiwrite(c);
- pinMode(_sid, INPUT); // input!
- uint16_t r = spiread();
- r <<= 8;
- r |= spiread();
- if (_cs)
- digitalWrite(_cs, HIGH);
+unsigned long testLines(uint16_t color) {
+//    unsigned long start, t;
+    int           x1, y1, x2, y2,
+                w = tft.width(),
+                h = tft.height();
 
- pinMode(_sid, OUTPUT); // back to output
- return r;
- }
+    tft.fillScreen(HX8357_BLACK);
 
- uint32_t Adafruit_HX8357::readcommand32(uint8_t c) {
- digitalWrite(_dc, LOW);
- if (_cs)
- digitalWrite(_cs, LOW);
- spiwrite(c);
- pinMode(_sid, INPUT); // input!
+    x1 = y1 = 0;
+    y2    = h - 1;
+//    start = micros();
+    for(x2=0; x2<w; x2+=6) tft.drawLine(x1, y1, x2, y2, color);
+    x2    = w - 1;
+    for(y2=0; y2<h; y2+=6) tft.drawLine(x1, y1, x2, y2, color);
+//    t     = micros() - start; // fillScreen doesn't count against timing
 
- dummyclock();
- dummyclock();
 
- uint32_t r = spiread();
- r <<= 8;
- r |= spiread();
- r <<= 8;
- r |= spiread();
- r <<= 8;
- r |= spiread();
- if (_cs)
- digitalWrite(_cs, HIGH);
+    return 0;//micros() - start;
+}
 
- pinMode(_sid, OUTPUT); // back to output
- return r;
- }
+unsigned long testFastLines(uint16_t color1, uint16_t color2) {
+//  unsigned long start;
+  int           x, y, w = tft.width(), h = tft.height();
 
- */
+  tft.fillScreen(HX8357_BLACK);
+//  start = micros();
+  for(y=0; y<h; y+=5) tft.drawFastHLine(0, y, w, color1);
+  for(x=0; x<w; x+=5) tft.drawFastVLine(x, 0, h, color2);
+
+  return 0;// micros() - start;
+}
+
+unsigned long testRects(uint16_t color) {
+//  unsigned long start;
+  int           n, i, i2,
+                cx = tft.width()  / 2,
+                cy = tft.height() / 2;
+
+  tft.fillScreen(HX8357_BLACK);
+  n     = min(tft.width(), tft.height());
+//  start = micros();
+  for(i=2; i<n; i+=6) {
+    i2 = i / 2;
+    tft.drawRect(cx-i2, cy-i2, i, i, color);
+  }
+
+  return 0;//micros() - start;
+}
+
+unsigned long testFilledRects(uint16_t color1, uint16_t color2) {
+  unsigned long start, t = 0;
+  int           n, i, i2,
+                cx = tft.width()  / 2 - 1,
+                cy = tft.height() / 2 - 1;
+
+  tft.fillScreen(HX8357_BLACK);
+  n = min(tft.width(), tft.height());
+  for(i=n; i>0; i-=6) {
+    i2    = i / 2;
+//    start = micros();
+    tft.fillRect(cx-i2, cy-i2, i, i, color1);
+//    t    += micros() - start;
+    // Outlines are not included in timing results
+    tft.drawRect(cx-i2, cy-i2, i, i, color2);
+  }
+
+  return t;
+}
+
+unsigned long testFilledCircles(uint8_t radius, uint16_t color) {
+  unsigned long start;
+  int x, y, w = tft.width(), h = tft.height(), r2 = radius * 2;
+
+  tft.fillScreen(HX8357_BLACK);
+//  start = micros();
+  for(x=radius; x<w; x+=r2) {
+    for(y=radius; y<h; y+=r2) {
+      tft.fillCircle(x, y, radius, color);
+    }
+  }
+
+  return 0;//micros() - start;
+}
+
+unsigned long testCircles(uint8_t radius, uint16_t color) {
+  unsigned long start;
+  int           x, y, r2 = radius * 2,
+                w = tft.width()  + radius,
+                h = tft.height() + radius;
+
+  // Screen is not cleared for this one -- this is
+  // intentional and does not affect the reported time.
+//  start = micros();
+  for(x=0; x<w; x+=r2) {
+    for(y=0; y<h; y+=r2) {
+      tft.drawCircle(x, y, radius, color);
+    }
+  }
+
+  return 0;//micros() - start;
+}
+
+unsigned long testTriangles() {
+  unsigned long start;
+  int           n, i, cx = tft.width()  / 2 - 1,
+                      cy = tft.height() / 2 - 1;
+
+  tft.fillScreen(HX8357_BLACK);
+  n     = min(cx, cy);
+//  start = micros();
+  for(i=0; i<n; i+=5) {
+    tft.drawTriangle(
+      cx    , cy - i, // peak
+      cx - i, cy + i, // bottom left
+      cx + i, cy + i, // bottom right
+      tft.color565(200, 20, i));
+  }
+
+  return 0;//micros() - start;
+}
+
+unsigned long testFilledTriangles() {
+  unsigned long start, t = 0;
+  int           i, cx = tft.width()  / 2 - 1,
+                   cy = tft.height() / 2 - 1;
+
+  tft.fillScreen(HX8357_BLACK);
+//  start = micros();
+  for(i=min(cx,cy); i>10; i-=5) {
+//    start = micros();
+    tft.fillTriangle(cx, cy - i, cx - i, cy + i, cx + i, cy + i,
+      tft.color565(0, i, i));
+//    t += micros() - start;
+    tft.drawTriangle(cx, cy - i, cx - i, cy + i, cx + i, cy + i,
+      tft.color565(i, i, 0));
+  }
+
+  return t;
+}
+
+unsigned long testRoundRects() {
+  unsigned long start;
+  int           w, i, i2,
+                cx = tft.width()  / 2 ,
+                cy = tft.height() / 2 ;
+
+  tft.fillScreen(HX8357_BLACK);
+  w     = min(tft.width(), tft.height());
+//  start = micros();
+  for(i=0; i<w; i+=8) {
+    i2 = i / 2 - 2;
+    tft.drawRoundRect(cx-i2, cy-i2, i, i, i/8, tft.color565(i, 100, 100));
+  }
+
+  return 0;// micros() - start;
+}
+
+unsigned long testFilledRoundRects() {
+  unsigned long start;
+  int           i, i2,
+                cx = tft.width()  / 2 + 10,
+                cy = tft.height() / 2 + 10;
+
+  tft.fillScreen(HX8357_BLACK);
+//  start = micros();
+  for(i=min(tft.width(), tft.height()) - 20; i>25; i-=6) {
+    i2 = i / 2;
+    tft.fillRoundRect(cx-i2, cy-i2, i-20, i-20, i/8, tft.color565(100, i/2, 100));
+  }
+
+  return 0;//micros() - start;
+}
+*/

@@ -10,10 +10,12 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
+"./Adafruit_GFX.obj" \
+"./Adafruit_HX8357.obj" \
 "./gfxfont.obj" \
 "./glcdfont.obj" \
 "./main.obj" \
-"./pinMux.obj" \
+"./motor.obj" \
 "./startup_ccs.obj" \
 "./timer_if.obj" \
 "./uart_if.obj" \
@@ -162,9 +164,9 @@ Lil-Pharma-SPI.bin: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "gfxfont.obj" "glcdfont.obj" "main.obj" "pinMux.obj" "startup_ccs.obj" "timer_if.obj" "uart_if.obj" 
-	-$(RM) "gfxfont.d" "glcdfont.d" "pinMux.d" "startup_ccs.d" "timer_if.d" "uart_if.d" 
-	-$(RM) "main.d" 
+	-$(RM) "Adafruit_GFX.obj" "Adafruit_HX8357.obj" "gfxfont.obj" "glcdfont.obj" "main.obj" "motor.obj" "startup_ccs.obj" "timer_if.obj" "uart_if.obj" 
+	-$(RM) "gfxfont.d" "glcdfont.d" "startup_ccs.d" "timer_if.d" "uart_if.d" 
+	-$(RM) "Adafruit_GFX.d" "Adafruit_HX8357.d" "main.d" "motor.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

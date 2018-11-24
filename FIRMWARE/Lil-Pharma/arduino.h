@@ -30,9 +30,13 @@
 // define some basic functions:
 #define min(a,b) ((a)>(b)?(b):(a))
 #define max(a,b) ((a)>(b)?(a):(b))
-#define delay(i) MAP_UtilsDelay(80*100*i)
+#define delay(i) MAP_UtilsDelay(14000*i)
 
-volatile uint32_t millis = 0;
+#define F(string_literal) (reinterpret_cast<__FlashStringHelper *>(PSTR(string_literal)))
+
+
+
+
 
 
 // use arduino macro if you prefer:

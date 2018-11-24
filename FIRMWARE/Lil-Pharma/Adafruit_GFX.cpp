@@ -26,11 +26,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include "Adafruit_GFX.h"
-#include "glcdfont.c"
+
+
 
 // Many (but maybe not all) non-AVR board installs define macros
 // for compatibility with existing PROGMEM-reading AVR code.
@@ -70,8 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
    @param    h   Display height, in pixels
 */
 /**************************************************************************/
-Adafruit_GFX::Adafruit_GFX(int16_t w, int16_t h):
-WIDTH(w), HEIGHT(h)
+Adafruit_GFX::Adafruit_GFX(int16_t w, int16_t h): WIDTH(w), HEIGHT(h)
 {
     _width    = WIDTH;
     _height   = HEIGHT;
@@ -94,7 +91,8 @@ WIDTH(w), HEIGHT(h)
     @param    color 16-bit 5-6-5 Color to draw with
 */
 /**************************************************************************/
-void Adafruit_GFX::writeLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) {
+void Adafruit_GFX::writeLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+        uint16_t color) {
     int16_t steep = abs(y1 - y0) > abs(x1 - x0);
     if (steep) {
         _swap_int16_t(x0, y0);
@@ -214,13 +212,14 @@ void Adafruit_GFX::endWrite(){
 /**************************************************************************/
 /*!
    @brief    Draw a perfectly vertical line (this is often optimized in a subclass!)
-   @param    x   Top-most x coordinate
-   @param    y   Top-most y coordinate
-   @param    h   Height in pixels
+    @param    x   Top-most x coordinate
+    @param    y   Top-most y coordinate
+    @param    h   Height in pixels
    @param    color 16-bit 5-6-5 Color to fill with
 */
 /**************************************************************************/
-void Adafruit_GFX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {
+void Adafruit_GFX::drawFastVLine(int16_t x, int16_t y,
+        int16_t h, uint16_t color) {
     startWrite();
     writeLine(x, y, x, y+h-1, color);
     endWrite();
@@ -245,10 +244,10 @@ void Adafruit_GFX::drawFastHLine(int16_t x, int16_t y,
 /**************************************************************************/
 /*!
    @brief    Fill a rectangle completely with one color. Update in subclasses if desired!
-   @param    x   Top left corner x coordinate
-   @param    y   Top left corner y coordinate
-   @param    w   Width in pixels
-   @param    h   Height in pixels
+    @param    x   Top left corner x coordinate
+    @param    y   Top left corner y coordinate
+    @param    w   Width in pixels
+    @param    h   Height in pixels
    @param    color 16-bit 5-6-5 Color to fill with
 */
 /**************************************************************************/
@@ -264,7 +263,7 @@ void Adafruit_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
 /**************************************************************************/
 /*!
    @brief    Fill the screen completely with one color. Update in subclasses if desired!
-   @param    color 16-bit 5-6-5 Color to fill with
+    @param    color 16-bit 5-6-5 Color to fill with
 */
 /**************************************************************************/
 void Adafruit_GFX::fillScreen(uint16_t color) {
@@ -274,11 +273,11 @@ void Adafruit_GFX::fillScreen(uint16_t color) {
 /**************************************************************************/
 /*!
    @brief    Draw a line
-   @param    x0  Start point x coordinate
-   @param    y0  Start point y coordinate
-   @param    x1  End point x coordinate
-   @param    y1  End point y coordinate
-   @param    color 16-bit 5-6-5 Color to draw with
+    @param    x0  Start point x coordinate
+    @param    y0  Start point y coordinate
+    @param    x1  End point x coordinate
+    @param    y1  End point y coordinate
+    @param    color 16-bit 5-6-5 Color to draw with
 */
 /**************************************************************************/
 void Adafruit_GFX::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
@@ -300,10 +299,10 @@ void Adafruit_GFX::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
 /**************************************************************************/
 /*!
    @brief    Draw a circle outline
-   @param    x0   Center-point x coordinate
-   @param    y0   Center-point y coordinate
-   @param    r   Radius of circle
-   @param    color 16-bit 5-6-5 Color to draw with
+    @param    x0   Center-point x coordinate
+    @param    y0   Center-point y coordinate
+    @param    r   Radius of circle
+    @param    color 16-bit 5-6-5 Color to draw with
 */
 /**************************************************************************/
 void Adafruit_GFX::drawCircle(int16_t x0, int16_t y0, int16_t r,
@@ -1075,7 +1074,7 @@ void Adafruit_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
         // may overlap).  To replace previously-drawn text when using a custom
         // font, use the getTextBounds() function to determine the smallest
         // rectangle encompassing a string, erase the area with fillRect(),
-        // then draw new text.  This WILL unfortunately 'blink' the text, but
+        // then draw new text.  This WILL infortunately 'blink' the text, but
         // is unavoidable.  Drawing 'background' pixels will NOT fix this,
         // only creates a new set of problems.  Have an idea to work around
         // this (a canvas object type for MCUs that can afford the RAM and
@@ -1109,49 +1108,49 @@ void Adafruit_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
     @param  c  The 8-bit ascii character to write
 */
 /**************************************************************************/
-void Adafruit_GFX::write(uint8_t c) {
-    if(!gfxFont) { // 'Classic' built-in font
-
-        if(c == '\n') {                        // Newline?
-            cursor_x  = 0;                     // Reset x to zero,
-            cursor_y += textsize * 8;          // advance y one line
-        } else if(c != '\r') {                 // Ignore carriage returns
-            if(wrap && ((cursor_x + textsize * 6) > _width)) { // Off right?
-                cursor_x  = 0;                 // Reset x to zero,
-                cursor_y += textsize * 8;      // advance y one line
-            }
-            drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
-            cursor_x += textsize * 6;          // Advance x one char
-        }
-
-    } else { // Custom font
-
-        if(c == '\n') {
-            cursor_x  = 0;
-            cursor_y += (int16_t)textsize *
-                        (uint8_t)pgm_read_byte(&gfxFont->yAdvance);
-        } else if(c != '\r') {
-            uint8_t first = pgm_read_byte(&gfxFont->first);
-            if((c >= first) && (c <= (uint8_t)pgm_read_byte(&gfxFont->last))) {
-                GFXglyph *glyph = &(((GFXglyph *)pgm_read_pointer(
-                  &gfxFont->glyph))[c - first]);
-                uint8_t   w     = pgm_read_byte(&glyph->width),
-                          h     = pgm_read_byte(&glyph->height);
-                if((w > 0) && (h > 0)) { // Is there an associated bitmap?
-                    int16_t xo = (int8_t)pgm_read_byte(&glyph->xOffset); // sic
-                    if(wrap && ((cursor_x + textsize * (xo + w)) > _width)) {
-                        cursor_x  = 0;
-                        cursor_y += (int16_t)textsize *
-                          (uint8_t)pgm_read_byte(&gfxFont->yAdvance);
-                    }
-                    drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
-                }
-                cursor_x += (uint8_t)pgm_read_byte(&glyph->xAdvance) * (int16_t)textsize;
-            }
-        }
-
-    }
-    //return 1;
+ void Adafruit_GFX::write(uint8_t c) {
+//    if(!gfxFont) { // 'Classic' built-in font
+//
+//        if(c == '\n') {                        // Newline?
+//            cursor_x  = 0;                     // Reset x to zero,
+//            cursor_y += textsize * 8;          // advance y one line
+//        } else if(c != '\r') {                 // Ignore carriage returns
+//            if(wrap && ((cursor_x + textsize * 6) > _width)) { // Off right?
+//                cursor_x  = 0;                 // Reset x to zero,
+//                cursor_y += textsize * 8;      // advance y one line
+//            }
+//            drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
+//            cursor_x += textsize * 6;          // Advance x one char
+//        }
+//
+//    } else { // Custom font
+//
+//        if(c == '\n') {
+//            cursor_x  = 0;
+//            cursor_y += (int16_t)textsize *
+//                        (uint8_t)pgm_read_byte(&gfxFont->yAdvance);
+//        } else if(c != '\r') {
+//            uint8_t first = pgm_read_byte(&gfxFont->first);
+//            if((c >= first) && (c <= (uint8_t)pgm_read_byte(&gfxFont->last))) {
+//                GFXglyph *glyph = &(((GFXglyph *)pgm_read_pointer(
+//                  &gfxFont->glyph))[c - first]);
+//                uint8_t   w     = pgm_read_byte(&glyph->width),
+//                          h     = pgm_read_byte(&glyph->height);
+//                if((w > 0) && (h > 0)) { // Is there an associated bitmap?
+//                    int16_t xo = (int8_t)pgm_read_byte(&glyph->xOffset); // sic
+//                    if(wrap && ((cursor_x + textsize * (xo + w)) > _width)) {
+//                        cursor_x  = 0;
+//                        cursor_y += (int16_t)textsize *
+//                          (uint8_t)pgm_read_byte(&gfxFont->yAdvance);
+//                    }
+//                    drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
+//                }
+//                cursor_x += (uint8_t)pgm_read_byte(&glyph->xAdvance) * (int16_t)textsize;
+//            }
+//        }
+//
+//    }
+//    return 1;
 }
 
 /**************************************************************************/
@@ -1226,7 +1225,7 @@ void Adafruit_GFX::setTextColor(uint16_t c, uint16_t b) {
     @param  w Set true for wrapping, false for clipping
 */
 /**************************************************************************/
-void Adafruit_GFX::setTextWrap(bool w) {
+void Adafruit_GFX::setTextWrap(boolean w) {
     wrap = w;
 }
 
@@ -1274,7 +1273,7 @@ void Adafruit_GFX::setRotation(uint8_t x) {
     @param  x  Whether to enable (True) or not (False)
 */
 /**************************************************************************/
-void Adafruit_GFX::cp437(bool x) {
+void Adafruit_GFX::cp437(boolean x) {
     _cp437 = x;
 }
 
@@ -1313,8 +1312,7 @@ void Adafruit_GFX::setFont(const GFXfont *f) {
     @param    maxy  Maximum clipping value for Y
 */
 /**************************************************************************/
-void Adafruit_GFX::charBounds(char c, int16_t *x, int16_t *y,
-  int16_t *minx, int16_t *miny, int16_t *maxx, int16_t *maxy) {
+void Adafruit_GFX::charBounds(char c, int16_t *x, int16_t *y, int16_t *minx, int16_t *miny, int16_t *maxx, int16_t *maxy) {
 
     if(gfxFont) {
 
@@ -1408,26 +1406,6 @@ void Adafruit_GFX::getTextBounds(const char *str, int16_t x, int16_t y,
 
 /**************************************************************************/
 /*!
-    @brief    Helper to determine size of a string with current font/size. Pass string and a cursor position, returns UL corner and W,H.
-    @param    str    The ascii string to measure (as an arduino String() class)
-    @param    x      The current cursor X
-    @param    y      The current cursor Y
-    @param    x1     The boundary X coordinate, set by function
-    @param    y1     The boundary Y coordinate, set by function
-    @param    w      The boundary width, set by function
-    @param    h      The boundary height, set by function
-*/
-/**************************************************************************/
-//void Adafruit_GFX::getTextBounds(const String &str, int16_t x, int16_t y,
-//        int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h) {
-//    if (str.length() != 0) {
-//        getTextBounds(const_cast<char*>(str.c_str()), x, y, x1, y1, w, h);
-//    }
-//}
-
-
-/**************************************************************************/
-/*!
     @brief    Helper to determine size of a PROGMEM string with current font/size. Pass string and a cursor position, returns UL corner and W,H.
     @param    str     The flash-memory ascii string to measure
     @param    x       The current cursor X
@@ -1486,7 +1464,7 @@ int16_t Adafruit_GFX::height(void) const {
     @param   i  True if you want to invert, false to make 'normal'
 */
 /**************************************************************************/
-void Adafruit_GFX::invertDisplay(bool i) {
+void Adafruit_GFX::invertDisplay(boolean i) {
     // Do nothing, must be subclassed if supported by hardware
 }
 
@@ -1565,7 +1543,7 @@ void Adafruit_GFX_Button::initButtonUL(
    @param    inverted Whether to draw with fill/text swapped to indicate 'pressed'
 */
 /**************************************************************************/
-void Adafruit_GFX_Button::drawButton(bool inverted) {
+void Adafruit_GFX_Button::drawButton(boolean inverted) {
   uint16_t fill, outline, text;
 
   if(!inverted) {
@@ -1586,7 +1564,7 @@ void Adafruit_GFX_Button::drawButton(bool inverted) {
     _y1 + (_h/2) - (4 * _textsize));
   _gfx->setTextColor(text);
   _gfx->setTextSize(_textsize);
-  _gfx->print(_label);
+//  _gfx->print(_label);
 }
 
 /**************************************************************************/
@@ -1597,8 +1575,9 @@ void Adafruit_GFX_Button::drawButton(bool inverted) {
    @returns   True if within button graphics outline
 */
 /**************************************************************************/
-bool Adafruit_GFX_Button::contains(int16_t x, int16_t y) {
-  return ((x >= _x1) && (x < (int16_t) (_x1 + _w)) && (y >= _y1) && (y < (int16_t) (_y1 + _h)));
+boolean Adafruit_GFX_Button::contains(int16_t x, int16_t y) {
+  return ((x >= _x1) && (x < (int16_t) (_x1 + _w)) &&
+          (y >= _y1) && (y < (int16_t) (_y1 + _h)));
 }
 
 /**************************************************************************/
@@ -1607,7 +1586,7 @@ bool Adafruit_GFX_Button::contains(int16_t x, int16_t y) {
    @param    p  True for pressed, false for not.
 */
 /**************************************************************************/
-void Adafruit_GFX_Button::press(bool p) {
+void Adafruit_GFX_Button::press(boolean p) {
   laststate = currstate;
   currstate = p;
 }
@@ -1618,7 +1597,7 @@ void Adafruit_GFX_Button::press(bool p) {
    @returns  True if pressed
 */
 /**************************************************************************/
-bool Adafruit_GFX_Button::isPressed() { return currstate; }
+boolean Adafruit_GFX_Button::isPressed() { return currstate; }
 
 /**************************************************************************/
 /*!
@@ -1626,7 +1605,7 @@ bool Adafruit_GFX_Button::isPressed() { return currstate; }
    @returns  True if was not-pressed before, now is.
 */
 /**************************************************************************/
-bool Adafruit_GFX_Button::justPressed() { return (currstate && !laststate); }
+boolean Adafruit_GFX_Button::justPressed() { return (currstate && !laststate); }
 
 /**************************************************************************/
 /*!
@@ -1634,7 +1613,7 @@ bool Adafruit_GFX_Button::justPressed() { return (currstate && !laststate); }
    @returns  True if was pressed before, now is not.
 */
 /**************************************************************************/
-bool Adafruit_GFX_Button::justReleased() { return (!currstate && laststate); }
+boolean Adafruit_GFX_Button::justReleased() { return (!currstate && laststate); }
 
 // -------------------------------------------------------------------------
 
