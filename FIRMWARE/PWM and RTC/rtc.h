@@ -22,7 +22,7 @@
 #define READ_INT2_REG                   0x6b
 #define WRITE_INT2_REG                  0x6a
 #define READ_CLK_CORRECTION_REG         0x6d
-#define WRITE_CLK_CORRECTION_REG        0x5c
+#define WRITE_CLK_CORRECTION_REG        0x6c
 #define READ_FREE_REG                   0x6f
 #define WRITE_FREE_REG                  0x6e
 
@@ -32,5 +32,7 @@ int RTCInit(void);
 int RTCSetTime(void);
 int RTCTimeGet(void);
 void RTCTimeConvert(void);
+unsigned char reverse(unsigned char b);
+void ArrayFlip(unsigned char array[], unsigned int arrayLength);
 
 #endif /* RTC_H_ */

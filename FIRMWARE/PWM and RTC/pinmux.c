@@ -55,11 +55,8 @@
 void
 PinMuxConfig(void)
 {
-    //
         // Set unused pins to PIN_MODE_0 with the exception of JTAG pins 16,17,19,20
         //
-        PinModeSet(PIN_01, PIN_MODE_0);
-        PinModeSet(PIN_02, PIN_MODE_0);
         PinModeSet(PIN_05, PIN_MODE_0);
         PinModeSet(PIN_06, PIN_MODE_0);
         PinModeSet(PIN_07, PIN_MODE_0);
@@ -79,15 +76,20 @@ PinMuxConfig(void)
         PinModeSet(PIN_61, PIN_MODE_0);
         PinModeSet(PIN_62, PIN_MODE_0);
         PinModeSet(PIN_63, PIN_MODE_0);
+        PinModeSet(PIN_64, PIN_MODE_0);
 
         //
         // Enable Peripheral Clocks
         //
-        PRCMPeripheralClkEnable(PRCM_TIMERA2, PRCM_RUN_MODE_CLK);
+        PRCMPeripheralClkEnable(PRCM_I2CA0, PRCM_RUN_MODE_CLK);
 
         //
-        // Configure PIN_64 for TimerPWM5 GT_PWM05
+        // Configure PIN_01 for I2C0 I2C_SCL
         //
-        PinTypeTimer(PIN_64, PIN_MODE_3);
-        PinDirModeSet(PIN_64, PIN_DIR_MODE_OUT);
+        PinTypeI2C(PIN_01, PIN_MODE_1);
+
+        //
+        // Configure PIN_02 for I2C0 I2C_SDA
+        //
+        PinTypeI2C(PIN_02, PIN_MODE_1);
 }

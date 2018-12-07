@@ -12,11 +12,12 @@
 
 //common includes
 #include "rtc.h"
+#include "i2c_if.h"
 #include "myi2c.h"
 
 //arrays(pointers) to store data to be sent on SDA
-unsigned char RTCRead[];
-unsigned char RTCWrite[];
+unsigned char RTCRead[20];
+unsigned char RTCWrite[20];
 
 /*
  * following registers used to store binary time data
@@ -30,28 +31,44 @@ unsigned char RTCWrite[];
  */
 unsigned char ConvertedTime[7];
 unsigned char CurrentTime[7];
+unsigned char RealTimeConv[8];
 
 int RTCInit() {
-    int i=0;
-    Myi2cInit();
-    Myi2cSlaveInit();
-    RTCWrite[0] = READ_STATUS_REG1;
-    Myi2cWrite(&RTCWrite, 1, 1);
-    Myi2cRead(&RTCRead, 1);
-    if((RTCRead[0] & 0x01)) {
-        for(i = 0; i <= 40000000; i++);
-        RTCWrite[0] = WRITE_STATUS_REG1;
-        RTCWrite[1] = 0x80;
-        Myi2cWrite(&RTCWrite, 2, 1);
+    int i = 0;
+    while(!(RTCRead[0] & 0x01)) {
         RTCWrite[0] = READ_STATUS_REG1;
-        Myi2cWrite(&RTCWrite, 1, 1);
-        Myi2cRead(&RTCRead, 1);
-        if((RTCRead[0] & 0x01)) {
-            RTCWrite[0] = WRITE_STATUS_REG1;
-            RTCWrite[1] = 0x40;
-            Myi2cWrite(&RTCWrite, 2, 1);
-            return 1;
+        //I2C_IF_Write(RTC_ADDRESS, RTCWrite, 1, 1);
+        //I2C_IF_Read(RTC_ADDRESS, RTCRead, 1);
+
+        MyI2CWrite(RTCWrite, 1, 1);
+        MyI2CRead(RTCRead, 1);
+    }
+    if((RTCRead[0] & 0x01)) {
+        for(i = 0; i <= 20000000; i++); //just a delay
+
+        RTCWrite[0] = WRITE_STATUS_REG1;
+        RTCWrite[1] = 0xA0;
+        //I2C_IF_Write(RTC_ADDRESS, RTCWrite, 2, 1);
+        MyI2CWrite(RTCWrite, 2, 1);
+        RTCWrite[0] = READ_STATUS_REG1;
+        //I2C_IF_Write(RTC_ADDRESS, RTCWrite, 1, 1);
+        //I2C_IF_Read(RTC_ADDRESS, RTCRead, 1);
+        MyI2CWrite(RTCWrite, 1, 1);
+        MyI2CRead(RTCRead, 1);
+        while(!(RTCRead[0] & 0x40)) {
+            if(!(RTCRead[0] & 0x03)) {
+                RTCWrite[0] = WRITE_STATUS_REG1;
+                RTCWrite[1] = 0x70;
+                //I2C_IF_Write(RTC_ADDRESS, RTCWrite, 2, 1);
+                MyI2CWrite(RTCWrite, 2, 1);
+            }
+            RTCWrite[0] = READ_STATUS_REG1;
+            //I2C_IF_Write(RTC_ADDRESS, RTCWrite, 1, 1);
+            //I2C_IF_Read(RTC_ADDRESS, RTCRead, 1);
+            MyI2CWrite(RTCWrite, 1, 1);
+            MyI2CRead(RTCRead, 1);
         }
+        return 1;
     }
     return 0;
 }
@@ -62,51 +79,57 @@ int RTCSetTime() {
     RTCWrite[0] = WRITE_REALTIME_DATA1;
 
     for(i=0; i<7; i++) {
-        if(CurrentTime[i] > 80) {
+        ConvTimeData = 0;
+        if(CurrentTime[i] >= 80) {
             ConvTimeData |= 0x80;
             CurrentTime[i] = CurrentTime[i] - 80;
         }
         if(i != 4) {
-            if(CurrentTime[i] > 40) {
+            if(CurrentTime[i] >= 40) {
                 ConvTimeData |= 0x40;
                 CurrentTime[i] = CurrentTime[i] - 40;
             }
         }
-        if(CurrentTime[i] > 20) {
+        if(CurrentTime[i] >= 20) {
             ConvTimeData |= 0x20;
             CurrentTime[i] = CurrentTime[i] - 20;
         }
-        if(CurrentTime[i] > 10) {
+        if(CurrentTime[i] >= 10) {
             ConvTimeData |= 0x10;
             CurrentTime[i] = CurrentTime[i] - 10;
         }
-        if(CurrentTime[i] > 8) {
+        if(CurrentTime[i] >= 8) {
             ConvTimeData |= 0x08;
             CurrentTime[i] = CurrentTime[i] - 8;
         }
-        if(CurrentTime[i] > 4) {
+        if(CurrentTime[i] >= 4) {
             ConvTimeData |= 0x04;
             CurrentTime[i] = CurrentTime[i] - 4;
         }
-        if(CurrentTime[i] > 2) {
+        if(CurrentTime[i] >= 2) {
             ConvTimeData |= 0x02;
             CurrentTime[i] = CurrentTime[i] - 2;
         }
-        if(CurrentTime[i] > 1) {
+        if(CurrentTime[i] >= 1) {
             ConvTimeData |= 0x01;
             CurrentTime[i] = CurrentTime[i] - 1;
         }
         RTCWrite[i+1] = ConvTimeData;
+        RealTimeConv[i] = ConvTimeData;
     }
-    Myi2cWrite(&RTCWrite, 8, 1);
-    return 0;
+    //I2C_IF_Write(RTC_ADDRESS, RTCWrite, 8, 1);
+    MyI2CWrite(RTCWrite, 8, 1);        //norm
+    return 1;
 }
 
 int RTCTimeGet() {
     RTCWrite[0] = READ_REALTIME_DATA1;
-    Myi2cWrite(&RTCWrite, 1, 1);
-    Myi2cRead(&RTCRead, 7);
-    RTCTimeConvert();
+    //RTCWrite[0] = READ_INT1_REG;
+    //I2C_IF_Write(RTC_ADDRESS, RTCWrite, 1, 1);
+    //I2C_IF_Read(RTC_ADDRESS, RTCRead, 7);
+    MyI2CWrite(RTCWrite, 1, 1);      //norm
+    MyI2CRead(RTCRead, 7);
+    return 1;
 }
 
 void RTCTimeConvert() {
@@ -156,3 +179,17 @@ void RTCTimeConvert() {
 
 }
 
+//byte reverse method retrieved from: https://stackoverflow.com/questions/2602823/in-c-c-whats-the-simplest-way-to-reverse-the-order-of-bits-in-a-byte
+unsigned char reverse(unsigned char b) {
+   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+   return b;
+}
+
+void ArrayFlip(unsigned char array[], unsigned int arrayLength) {
+    int i = 0;
+    for (i = 1; i < arrayLength; i++) {
+        array[i] = reverse(array[i]);
+    }
+}

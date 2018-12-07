@@ -19,9 +19,12 @@
 
 void MyI2CInit(void);
 void MyI2CDisable(void);
-void MyI2CCommand(unsigned long command);
+int MyI2CCommand(unsigned long command);
 void MyI2CWrite(unsigned char *DataPt, unsigned char DataLength, unsigned char StopBit);
 void MyI2CRead(unsigned char *DataPt, unsigned char DataLength);
+//void MyI2CWrite(unsigned char ucDevAddr,
+  //          unsigned char *ucBuffer,
+    //        unsigned long ulSize);
 
 
 #endif /* MYI2C_H_ */
