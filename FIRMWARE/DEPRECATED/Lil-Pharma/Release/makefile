@@ -10,14 +10,9 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
-"./Adafruit_GFX.obj" \
-"./Adafruit_HX8357.obj" \
-"./gfxfont.obj" \
-"./glcdfont.obj" \
 "./main.obj" \
-"./motor.obj" \
+"./pinmux.obj" \
 "./startup_ccs.obj" \
-"./timer_if.obj" \
 "./uart_if.obj" \
 "../cc3200v1p32.cmd" \
 $(GEN_CMDS__FLAG) \
@@ -129,34 +124,34 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-Lil-Pharma-SPI.out \
+spi_demo.out \
 
 EXE_OUTPUTS__QUOTED += \
-"Lil-Pharma-SPI.out" \
+"spi_demo.out" \
 
 BIN_OUTPUTS += \
-Lil-Pharma-SPI.bin \
+spi_demo.bin \
 
 BIN_OUTPUTS__QUOTED += \
-"Lil-Pharma-SPI.bin" \
+"spi_demo.bin" \
 
 
 # All Target
-all: Lil-Pharma-SPI.out
+all: spi_demo.out
 
 # Tool invocations
-Lil-Pharma-SPI.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+spi_demo.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: ARM Linker'
-	"C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=vfplib -me --define=ccs --define=cc3200 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"Lil-Pharma-SPI.map" --heap_size=0x800 --stack_size=0x800 -i"C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/lib" -i"C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="Lil-Pharma-SPI_linkInfo.xml" --rom_model -o "Lil-Pharma-SPI.out" $(ORDERED_OBJS)
+	"C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=vfplib -me --define=ccs --define=cc3200 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"spi_demo.map" --heap_size=0x800 --stack_size=0x800 -i"C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/lib" -i"C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="spi_demo_linkInfo.xml" --rom_model -o "spi_demo.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
 
-Lil-Pharma-SPI.bin: $(EXE_OUTPUTS)
+spi_demo.bin: $(EXE_OUTPUTS)
 	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo 'Invoking: ARM Hex Utility'
-	"C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armhex"  -o "Lil-Pharma-SPI.bin" $(EXE_OUTPUTS__QUOTED)
+	"C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armhex"  -o "spi_demo.bin" $(EXE_OUTPUTS__QUOTED)
 	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
@@ -164,14 +159,13 @@ Lil-Pharma-SPI.bin: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "Adafruit_GFX.obj" "Adafruit_HX8357.obj" "gfxfont.obj" "glcdfont.obj" "main.obj" "motor.obj" "startup_ccs.obj" "timer_if.obj" "uart_if.obj" 
-	-$(RM) "gfxfont.d" "glcdfont.d" "startup_ccs.d" "timer_if.d" "uart_if.d" 
-	-$(RM) "Adafruit_GFX.d" "Adafruit_HX8357.d" "main.d" "motor.d" 
+	-$(RM) "main.obj" "pinmux.obj" "startup_ccs.obj" "uart_if.obj" 
+	-$(RM) "main.d" "pinmux.d" "startup_ccs.d" "uart_if.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
 post-build:
-	-"C:/ti/ccsv8/utils/tiobj2bin/tiobj2bin" "Lil-Pharma-SPI.out" "Lil-Pharma-SPI.bin" "C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armofd" "C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armhex" "C:/ti/ccsv8/utils/tiobj2bin/mkhex4bin"
+	-"C:/ti/ccsv8/utils/tiobj2bin/tiobj2bin" "spi_demo.out" "spi_demo.bin" "C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armofd" "C:/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.3.LTS/bin/armhex" "C:/ti/ccsv8/utils/tiobj2bin/mkhex4bin"
 	-@echo ' '
 
 .PHONY: all clean dependents

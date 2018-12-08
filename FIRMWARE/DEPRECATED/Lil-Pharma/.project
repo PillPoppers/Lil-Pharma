@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>Lil-Pharma-SPI</name>
+	<name>spi_demo</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -29,11 +29,6 @@
 			<name>startup_ccs.c</name>
 			<type>1</type>
 			<locationURI>CC3200_SDK_ROOT/example/common/startup_ccs.c</locationURI>
-		</link>
-		<link>
-			<name>timer_if.c</name>
-			<type>1</type>
-			<locationURI>CC3200_SDK_ROOT/example/common/timer_if.c</locationURI>
 		</link>
 		<link>
 			<name>uart_if.c</name>

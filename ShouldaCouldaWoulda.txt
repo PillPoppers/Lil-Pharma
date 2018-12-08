@@ -1,0 +1,8 @@
+shoulda/coulda/woulda:
+
+Added LEDs and/or testpoints to each and every GPIO pin for debugging
+
+Double checked all PCB footprints for errors (compare PCB layout to datasheet schematics)
+
+kept the footprint for the LDO regulator
+
