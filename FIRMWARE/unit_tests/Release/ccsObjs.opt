@@ -1,0 +1,1 @@
+"./LCD.obj" "./gfxfont.obj" "./glcdfont.obj" "./gpio_if.obj" "./graphicsClasses.obj" "./hw_functions.obj" "./main.obj" "./motor.obj" "./myi2c.obj" "./pwmTimer.obj" "./rtc.obj" "./startup_ccs.obj" "./timer_if.obj" "./touch.obj" "./uart_if.obj" "../cc3200v1p32.cmd" -llibc.a -ldriverlib.a 
